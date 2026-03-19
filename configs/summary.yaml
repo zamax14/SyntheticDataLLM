@@ -1,0 +1,11 @@
+# The path where PDF files will be read.
+data_path: /input/data/path
+
+# The path for the generated YAML files.
+output_path: /output/data/path
+
+# The name of the Ollama model (i.e, llama3.2, mistral, deepseek-r1).
+model_name: phi4
+
+# The type of language to perform.
+language: ES

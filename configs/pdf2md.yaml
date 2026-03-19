@@ -1,0 +1,5 @@
+# The path where PDF files will be read.
+data_path: ./input
+
+# The path for the generated MD files.
+output_path: ./output

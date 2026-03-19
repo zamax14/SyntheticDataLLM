@@ -1,0 +1,7 @@
+jsonargparse[signatures,urls]
+langchain
+langchain-ollama
+tqdm
+docling
+polars
+pandas

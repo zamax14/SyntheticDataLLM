@@ -1,0 +1,13 @@
+**/__pycache__/**
+**/.vscode/*
+
+# Archivos de datos
+*.pdf
+*.PDF
+*.md
+!README.md
+!.github/**/*.md
+
+# Logs de SLURM
+*.out
+*.err

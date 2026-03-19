@@ -1,0 +1,5 @@
+# The path where Q&A YAML files will be read.
+data_path: /input/data/path
+
+# The path for the generated CSV files.
+output_path: /output/data/path

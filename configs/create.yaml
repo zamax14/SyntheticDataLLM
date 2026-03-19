@@ -1,0 +1,17 @@
+# The path where Markdown files will be read.
+data_path: ./output
+
+# The path for the generated YAML files.
+output_path: ./qa_output
+
+# The name of the Ollama model (i.e, llama3.2, mistral, deepseek-r1).
+model_name: llama3.1:8b
+
+# The flag that allows storing data in both YAML and CSV formats.
+store_csv: true
+
+# The flag that allows storing data in both YAML and JSONL formats.
+store_jsonl: false
+
+# The type of language to perform.
+language: ES
