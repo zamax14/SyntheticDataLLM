@@ -9,12 +9,10 @@
 # ==============================================================================
 
 import re
-import json
 import polars as pl
 
 from dataclasses import dataclass, field
 from abc import ABC, abstractmethod
-from types import SimpleNamespace
 from tqdm import tqdm
 from langchain_text_splitters import (
     MarkdownHeaderTextSplitter
@@ -69,16 +67,17 @@ class QandAExtractor(Extractor):
             language: LanguageType = LanguageType.ES
         ) -> ContextQandAResponses:
         """
-        Generate question-answer pairs and contexts from a list of paragraphs using a language model.
+        Genera pares pregunta-respuesta y contextos a partir de una lista de párrafos
+        usando un modelo de lenguaje con salida estructurada Pydantic.
 
         Args:
-            language: (LanguageType, optional): The type of language to perform.
-                                                Defaults to LanguageType.ES
+            language: (LanguageType, optional): El tipo de idioma a utilizar.
+                                                Por defecto LanguageType.ES
 
         Returns:
-           Tuple[ContextList, QandAResponses]: A tuple containing two lists:
-                - contexts: A list of generated contexts for each paragraph.
-                - responses: A list of generated question-answer pairs for each paragraph.
+            Tuple[ContextList, QandAResponses]: Tupla con dos listas:
+                - contexts: Lista de contextos generados para cada párrafo.
+                - responses: Lista de pares pregunta-respuesta para cada párrafo.
         """
         responses = list()
         contexts = list()
@@ -86,41 +85,21 @@ class QandAExtractor(Extractor):
             context = self.llm.generate(
                 text=p, gtype=Generationtype.TRANSLATE
             )
-            generated_qa = self.llm.generate(
-                text=context,
-                gtype=Generationtype.QUESTION_ANSWER
-            )
-            qas = self.to_list(generated_qa)
+            try:
+                qa_response = self.llm.generate_qa(text=context)
+                qas = [
+                    [item.prompt, item.completion]
+                    for item in qa_response.pairs
+                ]
+            except Exception:
+                Logger.warning('🟡 No se pudo extraer Q&A del párrafo.')
+                continue
             if not qas:
-                Logger.warning('🟡 Not able to extract Q&A from paragraph.')
+                Logger.warning('🟡 No se pudo extraer Q&A del párrafo.')
                 continue
             contexts.append(context)
             responses.append(qas)
         return contexts, responses
-
-    def to_list(self, responses: str) -> QuestionAnswerList:
-        """
-        Convert a list of question-answer responses into separate lists of questions and answers.
-
-        Args:
-           responses (str): A text that contains question-answer responses from LLM.
-
-        Returns:
-           QuestionAnswerList: A list of question-answer pairs, where each pair is a list containing
-                                  questions and answers.
-        """
-        questions_answers = list()
-        qas = re.findall(r"\{[^}]*\}", responses)
-        for qa in tqdm(qas, ascii=True, ncols=75, desc='📦 Deserealizing'):
-            try:
-                deserealized = json.loads(qa)
-                parsed = SimpleNamespace(**deserealized)
-                question = parsed.prompt
-                answer = parsed.completion
-                questions_answers.append([question, answer])
-            except Exception:
-                Logger.warning('🟡 Unable to parse Q&A.')
-        return questions_answers
 
     def format(
             self,

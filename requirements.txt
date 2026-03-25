@@ -1,6 +1,7 @@
 jsonargparse[signatures,urls]
 langchain
 langchain-ollama
+pydantic
 tqdm
 docling
 polars

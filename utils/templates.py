@@ -3,24 +3,20 @@ from langchain_core.prompts import ChatPromptTemplate
 
 def create_q_and_a_prompt_es() -> ChatPromptTemplate:
     """
-    Creates a prompt template for generating question and answer pairs from a given paragraph
-    in Spanish.
+    Crea un template de prompt para generar pares de pregunta y respuesta
+    a partir de un párrafo en español. La estructura de salida es impuesta
+    por el modelo Pydantic QandAResponse.
+
     Returns:
-        ChatPromptTemplate: A template for the Q&A generation prompt.
+        ChatPromptTemplate: Template para el prompt de generación Q&A.
     """
     system_prompt = (
         'A partir del siguiente párrafo, genera entre 1 y 3 pares de pregunta y respuesta.\n\n'
         'Reglas:\n'
         '- Varía los tipos de pregunta: factuales, comparativas, de definición, causales y de resumen.\n'
         '- Las respuestas deben ser detalladas y en español.\n'
-        '- Usa SOLO información del párrafo, no inventes datos.\n'
-        '- Responde en formato JSON: una lista de objetos con claves "prompt" y "completion".\n\n'
-        'Ejemplo de formato:\n'
-        '[{{"prompt": "¿Cuál es la población de Acatic?", "completion": "La población de Acatic es de 22,986 habitantes según el censo 2020."}}, '
-        '{{"prompt": "¿Cómo se compara la tasa de marginación de Acatic con el promedio estatal?", "completion": "Acatic tiene un grado de marginación medio, por encima del promedio estatal que es bajo."}}, '
-        '{{"prompt": "¿Qué significa el nombre Acatic?", "completion": "El nombre Acatic proviene de la voz náhuatl laka-ti-k que significa Entre las cañas o Lugar de muchas cañas."}}]\n\n'
-        'Párrafo:\n{text}\n\n'
-        'JSON:\n'
+        '- Usa SOLO información del párrafo, no inventes datos.\n\n'
+        'Párrafo:\n{text}'
     )
     return ChatPromptTemplate.from_template(system_prompt)
 
