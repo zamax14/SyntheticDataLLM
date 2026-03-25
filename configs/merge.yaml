@@ -1,0 +1,8 @@
+# Directorio de entrada con los archivos CSV a fusionar.
+data_path: ./qa_output
+
+# Directorio de salida donde se guardará el CSV fusionado.
+output_path: ./merged_output
+
+# Nombre base del archivo fusionado (sin extensión).
+output_filename: merged_qa
