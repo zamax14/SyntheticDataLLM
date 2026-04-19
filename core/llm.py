@@ -11,12 +11,14 @@ from dataclasses import dataclass
 from enum import Enum, auto
 from langchain_ollama import ChatOllama
 from langchain_core.output_parsers import StrOutputParser
-from core.schemas import QandAResponse
+from core.schemas import QandAResponse, QuestionList, VariantList
 from utils.templates import (
     create_q_and_a_prompt_es,
     create_translate_prompt_es,
     create_summarize_prompt_es,
-    create_reasoning_prompt_es
+    create_reasoning_prompt_es,
+    create_rag_questions_prompt_es,
+    create_rag_variants_prompt_es
 )
 
 
@@ -45,6 +47,8 @@ class LLM:
     def __post_init__(self) -> None:
         self._ollama = ChatOllama(model=self.model)
         self._structured_qa = self._ollama.with_structured_output(QandAResponse)
+        self._structured_questions = self._ollama.with_structured_output(QuestionList)
+        self._structured_variants = self._ollama.with_structured_output(VariantList)
         self._prompt_fn = {
             Generationtype.TRANSLATE: create_translate_prompt_es,
             Generationtype.SUMMARIZE: create_summarize_prompt_es,
@@ -111,4 +115,44 @@ class LLM:
                 'source': source
             }
         )
+        return response
+
+    def generate_questions(
+        self,
+        text: str,
+        num_questions: int = 3
+    ) -> QuestionList:
+        """
+        Genera preguntas de validación RAG a partir de un chunk de texto.
+
+        Args:
+            text (str): El chunk de texto para generar preguntas.
+            num_questions (int): Número de preguntas a generar.
+
+        Returns:
+            QuestionList: Objeto Pydantic con la lista de preguntas generadas.
+        """
+        prompt = create_rag_questions_prompt_es(num_questions)
+        chain = prompt | self._structured_questions
+        response = chain.invoke({'text': text})
+        return response
+
+    def generate_variants(
+        self,
+        question: str,
+        num_variants: int = 2
+    ) -> VariantList:
+        """
+        Genera variantes (reescrituras semánticas) de una pregunta.
+
+        Args:
+            question (str): La pregunta original a reescribir.
+            num_variants (int): Número de variantes a generar.
+
+        Returns:
+            VariantList: Objeto Pydantic con la lista de variantes generadas.
+        """
+        prompt = create_rag_variants_prompt_es(num_variants)
+        chain = prompt | self._structured_variants
+        response = chain.invoke({'question': question})
         return response

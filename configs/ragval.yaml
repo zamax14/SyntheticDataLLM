@@ -1,0 +1,7 @@
+data_path: ./fichas_iieg/md
+output_path: ./fichas_iieg
+model_name: qwen3:14b
+num_questions: 5
+num_variants: 3
+convert: false
+min_tokens: 50

@@ -81,3 +81,52 @@ def create_reasoning_prompt_es() -> ChatPromptTemplate:
         'Fuente: {source}'
     )
     return ChatPromptTemplate.from_template(system_prompt)
+
+
+def create_rag_questions_prompt_es(num_questions: int) -> ChatPromptTemplate:
+    """
+    Crea un template de prompt para generar preguntas de validación RAG
+    a partir de un chunk de texto en español.
+
+    Args:
+        num_questions (int): Número de preguntas a generar.
+
+    Returns:
+        ChatPromptTemplate: Template para el prompt de generación de preguntas RAG.
+    """
+    system_prompt = (
+        f'A partir del siguiente fragmento de un documento, genera exactamente {num_questions} '
+        'preguntas que un usuario podría hacer a un sistema de búsqueda.\n\n'
+        'Reglas:\n'
+        '- Cada pregunta debe poder responderse EXCLUSIVAMENTE con la información del fragmento.\n'
+        '- Varía los tipos de pregunta: factuales, comparativas, de definición, causales y de resumen.\n'
+        '- Las preguntas deben ser naturales, como las haría un usuario real.\n'
+        '- Las preguntas deben estar en español.\n'
+        '- No repitas preguntas ni hagas variaciones de la misma pregunta.\n\n'
+        'Fragmento:\n{{text}}'
+    )
+    return ChatPromptTemplate.from_template(system_prompt)
+
+
+def create_rag_variants_prompt_es(num_variants: int) -> ChatPromptTemplate:
+    """
+    Crea un template de prompt para generar variantes (reescrituras semánticas)
+    de una pregunta en español.
+
+    Args:
+        num_variants (int): Número de variantes a generar.
+
+    Returns:
+        ChatPromptTemplate: Template para el prompt de generación de variantes.
+    """
+    system_prompt = (
+        f'Reescribe la siguiente pregunta de {num_variants} formas diferentes, '
+        'manteniendo exactamente el mismo significado.\n\n'
+        'Reglas:\n'
+        '- Cada variante debe ser una forma distinta de hacer la misma pregunta.\n'
+        '- Usa sinónimos, cambia la estructura gramatical o el orden de las palabras.\n'
+        '- Mantén el mismo nivel de formalidad y detalle.\n'
+        '- Las variantes deben estar en español.\n\n'
+        'Pregunta original:\n{{question}}'
+    )
+    return ChatPromptTemplate.from_template(system_prompt)

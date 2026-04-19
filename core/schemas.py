@@ -27,3 +27,27 @@ class QandAResponse(BaseModel):
     pairs: list[QandAItem] = Field(
         description="Lista de entre 1 y 3 pares de pregunta y respuesta."
     )
+
+
+class QuestionItem(BaseModel):
+    """Una pregunta generada a partir de un chunk de texto."""
+
+    question: str = Field(
+        description="La pregunta generada a partir del chunk."
+    )
+
+
+class QuestionList(BaseModel):
+    """Lista de preguntas generadas a partir de un chunk de texto."""
+
+    questions: list[QuestionItem] = Field(
+        description="Lista de preguntas generadas."
+    )
+
+
+class VariantList(BaseModel):
+    """Lista de variantes (reescrituras) de una pregunta."""
+
+    variants: list[str] = Field(
+        description="Lista de reescrituras semánticas de la pregunta original."
+    )
