@@ -11,3 +11,6 @@
 # Logs de SLURM
 *.out
 *.err
+
+qa_output/
+merged_output/
