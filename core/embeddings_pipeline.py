@@ -11,8 +11,6 @@
 # License: MIT
 # ==============================================================================
 
-from functools import partial
-
 from distilabel.models import OpenAILLM
 from distilabel.pipeline import Pipeline
 from distilabel.steps import LoadDataFromDicts
@@ -29,27 +27,6 @@ DEFAULT_CONTEXT_ES = (
     'la consulta a las del ancla: a veces reutiliza términos exactos, a veces '
     'parafrasea. Responde siempre en español.'
 )
-
-
-class NoThinkOpenAILLM(OpenAILLM):
-    """
-    OpenAILLM that disables the model's reasoning/thinking mode.
-
-    Needed for Ollama-served reasoning models (e.g. qwen3.6): by default they
-    return the answer in the `reasoning` field and leave `content` EMPTY, so
-    every generation would be dropped. `reasoning_effort` is injected at the
-    OpenAI-SDK level (`extra_body`, a documented client kwarg) instead of
-    through distilabel's `generation_kwargs`, which validates its signature and
-    would reject an unknown key.
-    """
-
-    def load(self) -> None:
-        super().load()
-        for client in (self._client, self._aclient):
-            client.chat.completions.create = partial(
-                client.chat.completions.create,
-                extra_body={'reasoning_effort': 'none'},
-            )
 
 
 def build_pipeline(
@@ -83,20 +60,22 @@ def build_pipeline(
                   (http://localhost:11434/v1) to generate locally; leave unset
                   for the real OpenAI API.
         api_key: API key. Ollama ignores its value but the client requires one.
-        disable_thinking: Required for reasoning models served by Ollama —
-                          see `NoThinkOpenAILLM`.
+        disable_thinking: Required for Ollama reasoning models. Adds
+                          `extra_body={'reasoning_effort': 'none'}`; without it
+                          qwen3.6 spends the whole budget on `reasoning` and
+                          returns an empty answer for every anchor.
 
     Returns:
         An unrun distilabel Pipeline, ready for `pipeline.run()`.
     """
-    llm_cls = NoThinkOpenAILLM if disable_thinking else OpenAILLM
-    llm_kwargs = {
-        'model': model_name,
-        'generation_kwargs': {
-            'temperature': temperature,
-            'max_new_tokens': max_new_tokens,
-        },
+    generation_kwargs = {
+        'temperature': temperature,
+        'max_new_tokens': max_new_tokens,
     }
+    if disable_thinking:
+        generation_kwargs['extra_body'] = {'reasoning_effort': 'none'}
+
+    llm_kwargs = {'model': model_name, 'generation_kwargs': generation_kwargs}
     if base_url:
         llm_kwargs['base_url'] = base_url
     if api_key:
@@ -113,7 +92,7 @@ def build_pipeline(
             hard_negative=True,
             action='query',
             context=context,
-            llm=llm_cls(**llm_kwargs),
+            llm=OpenAILLM(**llm_kwargs),
             use_default_structured_output=True,
         )
         load_data >> generate_pairs

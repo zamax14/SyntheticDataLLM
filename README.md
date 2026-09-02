@@ -99,7 +99,8 @@ python synthetic.py create_embeddings --config configs/create_embeddings.yaml
 ```
 
 > ⚠️ Reasoning models served by Ollama (e.g. `qwen3.6`) return an **empty** answer unless thinking
-> is disabled — the content goes to the `reasoning` field. Keep `disable_thinking: true` for them.
+> is disabled — the whole token budget goes to the `reasoning` field. Keep `disable_thinking: true`
+> for them, and `max_new_tokens` well above distilabel's default of 128.
 
 ### 3. (Optional) Mine a real corpus hard negative
 
