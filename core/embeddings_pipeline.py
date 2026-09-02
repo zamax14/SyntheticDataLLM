@@ -57,6 +57,7 @@ def build_pipeline(
     model_name: str = 'gpt-4o-mini',
     context: str = DEFAULT_CONTEXT_ES,
     temperature: float = 0.7,
+    max_new_tokens: int = 512,
     base_url: str | None = None,
     api_key: str | None = None,
     disable_thinking: bool = False,
@@ -75,6 +76,9 @@ def build_pipeline(
         context: Domain context injected into the generation prompt, used to
                  ground queries in the anchor's specific facts/entities.
         temperature: Sampling temperature for the LLM.
+        max_new_tokens: Output budget per generation. distilabel's default (128)
+                        truncates the query+negative pair mid-JSON and the row is
+                        lost to `IncompleteOutputException`.
         base_url: OpenAI-compatible endpoint. Point it at Ollama
                   (http://localhost:11434/v1) to generate locally; leave unset
                   for the real OpenAI API.
@@ -88,7 +92,10 @@ def build_pipeline(
     llm_cls = NoThinkOpenAILLM if disable_thinking else OpenAILLM
     llm_kwargs = {
         'model': model_name,
-        'generation_kwargs': {'temperature': temperature},
+        'generation_kwargs': {
+            'temperature': temperature,
+            'max_new_tokens': max_new_tokens,
+        },
     }
     if base_url:
         llm_kwargs['base_url'] = base_url
@@ -118,6 +125,7 @@ def generate_triplets(
     sources: list[str],
     model_name: str = 'gpt-4o-mini',
     context: str = DEFAULT_CONTEXT_ES,
+    max_new_tokens: int = 512,
     base_url: str | None = None,
     api_key: str | None = None,
     disable_thinking: bool = False,
@@ -131,6 +139,7 @@ def generate_triplets(
                  kept for traceability in the output dataset.
         model_name: Model id used for generation.
         context: Domain context injected into the generation prompt.
+        max_new_tokens: Output budget per generation.
         base_url: OpenAI-compatible endpoint (e.g. an Ollama server).
         api_key: API key for that endpoint.
         disable_thinking: Disable the model's reasoning mode (Ollama).
@@ -150,6 +159,7 @@ def generate_triplets(
         anchors=anchors,
         model_name=model_name,
         context=context,
+        max_new_tokens=max_new_tokens,
         base_url=base_url,
         api_key=api_key,
         disable_thinking=disable_thinking,
