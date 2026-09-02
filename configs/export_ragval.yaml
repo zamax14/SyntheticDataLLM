@@ -1,0 +1,5 @@
+# CSV produced by `create_embeddings` (query, answer, hard_negative, source_file).
+input_csv: ./qa_embeddings_output/embeddings_qa.csv
+
+# Where ragval_dataset.csv is written; copy it into Tesis-RAG/dataset/.
+output_path: ./qa_embeddings_output/ragval
