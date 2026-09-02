@@ -53,6 +53,7 @@ class NoThinkOpenAILLM(OpenAILLM):
 
 
 def build_pipeline(
+    anchors: list[str],
     model_name: str = 'gpt-4o-mini',
     context: str = DEFAULT_CONTEXT_ES,
     temperature: float = 0.7,
@@ -65,6 +66,10 @@ def build_pipeline(
     (query, positive, hard_negative) triplets for embedding fine-tuning.
 
     Args:
+        anchors: Cleaned paragraph texts to feed the pipeline. They are passed
+                 to `LoadDataFromDicts` at construction time: `data` is not a
+                 runtime parameter, so injecting it through `run(parameters=)`
+                 leaves the step empty and the run dies on an empty column list.
         model_name: Model id used for generation (OpenAI id, or the Ollama tag
                     when `base_url` points at an Ollama server).
         context: Domain context injected into the generation prompt, used to
@@ -78,7 +83,7 @@ def build_pipeline(
                           see `NoThinkOpenAILLM`.
 
     Returns:
-        An unrun distilabel Pipeline. Feed anchors via `pipeline.run(parameters=...)`.
+        An unrun distilabel Pipeline, ready for `pipeline.run()`.
     """
     llm_cls = NoThinkOpenAILLM if disable_thinking else OpenAILLM
     llm_kwargs = {
@@ -91,7 +96,10 @@ def build_pipeline(
         llm_kwargs['api_key'] = api_key
 
     with Pipeline(name='embeddings-synthetic-data') as pipeline:
-        load_data = LoadDataFromDicts(name='load_anchors')
+        load_data = LoadDataFromDicts(
+            name='load_anchors',
+            data=[{'anchor': anchor} for anchor in anchors],
+        )
         generate_pairs = GenerateSentencePair(
             name='generate_pairs',
             triplet=True,
@@ -139,16 +147,14 @@ def generate_triplets(
 
     source_by_anchor = dict(zip(anchors, sources))
     pipeline = build_pipeline(
+        anchors=anchors,
         model_name=model_name,
         context=context,
         base_url=base_url,
         api_key=api_key,
         disable_thinking=disable_thinking,
     )
-    distiset = pipeline.run(
-        parameters={'load_anchors': {'data': [{'anchor': a} for a in anchors]}},
-        use_cache=False,
-    )
+    distiset = pipeline.run(use_cache=False)
     generated = distiset['default']['train']
 
     rows = []
