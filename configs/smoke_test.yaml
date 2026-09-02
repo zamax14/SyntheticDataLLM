@@ -1,0 +1,5 @@
+# Path overrides for the smoke test. Stacked on top of create_embeddings.yaml
+# (`--config a.yaml --config b.yaml`) so the model, endpoint and no-thinking
+# switch stay single-sourced there.
+data_path: ./smoke/md
+output_path: ./smoke/out

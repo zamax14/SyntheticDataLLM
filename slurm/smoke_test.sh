@@ -29,10 +29,11 @@ rm -rf smoke && mkdir -p smoke/md
 ls output/*.md | head -2 | xargs -I{} cp {} smoke/md/
 
 SECONDS=0
+# Stacked configs: the second only overrides the paths (this CLI takes no
+# --flag overrides; its arguments are positional).
 python synthetic.py create_embeddings \
     --config configs/create_embeddings.yaml \
-    --data_path ./smoke/md \
-    --output_path ./smoke/out
+    --config configs/smoke_test.yaml
 echo "tiempo total: ${SECONDS}s"
 
 python - <<'PY'

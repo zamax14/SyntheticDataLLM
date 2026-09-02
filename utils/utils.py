@@ -2,9 +2,13 @@ import os
 import re
 import pandas as pd
 
-from docling.document_converter import DocumentConverter
+from typing import TYPE_CHECKING
+
 from utils.logger import Logger
 from pandas import DataFrame
+
+if TYPE_CHECKING:  # docling is only needed by pdf2md, not by the generation env.
+    from docling.document_converter import DocumentConverter
 
 
 MarkDowndExtension: str = '.md'
@@ -58,7 +62,7 @@ def replace_pattern(text: str, by: str, pattern: str) -> str:
     return re.sub(pattern, by, text).strip()
 
 
-def to_markdown(filename: str, converter: DocumentConverter = None) -> str:
+def to_markdown(filename: str, converter: 'DocumentConverter' = None) -> str:
     """
     Convert a file to Markdown format.
 
@@ -80,6 +84,7 @@ def to_markdown(filename: str, converter: DocumentConverter = None) -> str:
         ConversionError: If there is an error during the conversion process.
     """
     if converter is None:
+        from docling.document_converter import DocumentConverter
         converter = DocumentConverter()
     result = converter.convert(filename)
     markdown = result.document.export_to_markdown()
