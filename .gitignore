@@ -14,3 +14,9 @@
 
 qa_output/
 merged_output/
+# Datos del pipeline de embeddings
+input/
+output/
+cuadernillos-y-demas/
+qa_embeddings_output/
+slurm/logs/

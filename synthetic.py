@@ -1,186 +1,184 @@
 # ==============================================================================
 # Project Name: Synthetic Data Generator
 # Script Name: synthetic.py
-# Authors: Abraham Sánchez, Ulises Moya, Alejandro Zarate  
+# Authors: Abraham Sánchez, Ulises Moya, Alejandro Zarate
 # Description:
-#   This application helps to create synthetic Q&A data format for LLM training
-#   models.
+#   Generates (query, answer, hard_negative) triplets from Markdown documents
+#   for fine-tuning Spanish embedding models (RAG / tool-calling retrieval).
 # License: MIT
 # ==============================================================================
 
+import hashlib
 import os
-import yaml
-import time
+import pandas as pd
 
 from jsonargparse import CLI
 from dataclasses import dataclass
-from tqdm import tqdm
+from core import quality_gate
 from core.paragraph import Paragraph
-from core.llm import LLM
-from core.extractor import (
-    QandAExtractor,
-    SummarizeExtractor,
-    ReasoningExtractor
-)
-from core.llm import LanguageType
+from core.hard_negative_miner import DEFAULT_MODEL as DEFAULT_NEGATIVE_MINING_MODEL
+from core.hard_negative_miner import mine as mine_hard_negatives_for
 from utils.logger import Logger
-from utils.utils import (
-    save_data,
-    read_data,
-    save_markdown,
-    MarkDowndExtension,
-    YamlExtension,
-    CSVExtension
-)
+from utils.utils import read_data, read_csv, MarkDowndExtension
 
 
 @dataclass
 class SyntheticData:
     """Class for handling synthetic data operations."""
 
-    def create(
+    def create_embeddings(
         self,
         data_path: str,
         output_path: str,
-        model_name: str = 'phi4',
-        store_csv: bool = False,
+        model_name: str = 'gpt-4o-mini',
+        context: str | None = None,
+        min_tokens: int = 200,
         store_jsonl: bool = False,
-        language: LanguageType = LanguageType.ES
+        base_url: str | None = None,
+        api_key: str | None = None,
+        disable_thinking: bool = False
     ) -> None:
         """
-        Create synthetic Q&A data format for LLM training models.\
-        The format of the file is based on [InstructLab](https://instructlab.ai/).
+        Create (query, answer, hard_negative) triplets for embedding model
+        fine-tuning, grounded in the specific facts of each paragraph.
+
+        Unlike `create`, this uses distilabel's GenerateSentencePair task:
+        structured output is enforced by the library (no manual JSON
+        parsing), and each anchor paragraph yields a query anchored in its
+        entities/figures plus an LLM-authored hard negative in one call.
+        Generated pairs go through the protocol's quality gate before being
+        written; rejects are kept in rejected_qa.csv for inspection.
+
+        Runs against OpenAI (needs OPENAI_API_KEY exported) or, by setting
+        base_url, against any OpenAI-compatible server such as Ollama.
 
         Args:
-            data_path (str): The input directory data path.
+            data_path (str): The input directory with markdown files.
             output_path (str): The output directory path.
-            model_name (str): The ollama model name.
-            store_csv (bool): The flag that indicates to store the data as CSV.
-            store_jsonl (bool): The flag that indicates to store the data as JSONL.
-            language: (LanguageType, optional): The type of language to perform.
-                                                Defaults to LanguageType.ES
+            model_name (str): Model id (OpenAI id, or the Ollama tag).
+            context (str): Domain context injected into the generation prompt.
+                            Defaults to the IIEG Spanish context of the pipeline.
+            min_tokens (int): Minimum paragraph length to use as an anchor.
+            store_jsonl (bool): Also store a JSONL copy alongside the CSV.
+            base_url (str): OpenAI-compatible endpoint. Point it at Ollama
+                            (http://localhost:11434/v1) to generate locally.
+            api_key (str): API key for that endpoint ('ollama' works for Ollama).
+            disable_thinking (bool): Required for Ollama reasoning models such as
+                                     qwen3.6, whose answer is otherwise empty.
         """
-        Logger.info('🚀 Processing Synthetic data ...')
-        llm = LLM(model=model_name)
-        md_files = [
-            (root, f) for root, _, files in os.walk(data_path)
-            for f in files if os.path.splitext(f)[1] == MarkDowndExtension
-        ]
-        Logger.info(f'📄 Found {len(md_files)} markdown files in {data_path}')
-        for idx, (root, filename) in enumerate(tqdm(md_files, ascii=True, ncols=75, desc='⚪ Generating Q&A'), 1):
-                name, ext = os.path.splitext(filename)
-                Logger.info(f'[{idx}/{len(md_files)}] Processing: {filename}')
-                t0 = time.time()
-                content = read_data(filename=os.path.join(root, filename))
-                if content is None:
-                    continue
-                extractor = QandAExtractor(
-                    text=content, llm=llm,
-                    paragraph=Paragraph(text=content)
-                )
-                extractor.filename = filename
-                extraction = extractor.extract(language=language)
-                save_data(
-                    extraction=extraction, filename=name, output_path=output_path,
-                    store_csv=store_csv, store_jsonl=store_jsonl
-                )
-                Logger.info(f'✅ {filename} done in {time.time() - t0:.1f}s')
-        Logger.info('🟢 Process done!')
+        Logger.info('🚀 Generating embeddings training data (query, answer, hard_negative) ...')
+        # Imported here so the other commands stay usable in environments
+        # without distilabel (the miner only needs sentence-transformers).
+        from core.embeddings_pipeline import DEFAULT_CONTEXT_ES, generate_triplets
+        context = context or DEFAULT_CONTEXT_ES
 
-    def create_reasoning(self,
-        data_path: str,
-        output_path: str,
-        model_name: str = 'qwen3:8b',
-        language: LanguageType = LanguageType.ES
-    ) -> None:
-        Logger.info('🚀 Processing Reasoning Synthetic Data ...')
-        llm = LLM(model=model_name)
-        csv_files = [
-            (root, f) for root, _, files in os.walk(data_path)
-            for f in files if os.path.splitext(f)[1] == CSVExtension
-        ]
-        Logger.info(f'📄 Found {len(csv_files)} CSV files in {data_path}')
-        for idx, (root, filename) in enumerate(tqdm(csv_files, ascii=True, ncols=75, desc='⚪ Generating Reasoning'), 1):
-                name, _ = os.path.splitext(filename)
-                Logger.info(f'[{idx}/{len(csv_files)}] Processing: {filename}')
-                t0 = time.time()
-                extractor = ReasoningExtractor(
-                    filename=os.path.join(root, filename),
-                    llm=llm
-                )
-                extraction = extractor.extract(language=language)
-                os.makedirs(output_path, exist_ok=True)
-                extraction.write_csv(os.path.join(output_path, name + '.csv'))
-                Logger.info(f'✅ {filename} done in {time.time() - t0:.1f}s')
-        Logger.info('🟢 Process done!')
-
-    def convert(
-        self,
-        data_path: str,
-        output_path: str
-    ) -> None:
-        """
-        Convert the Q&A files into CSV format.
-
-        Args:
-            data_path (str): The input directory data path.
-            output_path (str): The output directory path.
-        """
-        Logger.info('🚀 Processing data conversion ...')
+        anchors, sources = [], []
         for root, _, files in os.walk(data_path):
-            for filename in tqdm(files, ascii=True, ncols=75, desc='📂 Reading files'):
-                name, ext = os.path.splitext(filename)
-                if ext != YamlExtension:
+            for filename in files:
+                _, ext = os.path.splitext(filename)
+                if ext != MarkDowndExtension:
                     continue
-                with open(os.path.join(root, filename), 'r') as file:
-                    data = yaml.safe_load(file)
-                    save_data(
-                        extraction=data, filename=name, output_path=output_path,
-                        store_csv=True, store_jsonl=True
-                    )
-        Logger.info('🟢 Process done!')
+                content = read_data(filename=os.path.join(root, filename))
+                paragraph = Paragraph(text=content, min_tokens=min_tokens)
+                anchors.extend(list(paragraph))
+                sources.extend([filename] * len(paragraph))
 
-    def summarize(
+        rows = generate_triplets(
+            anchors=anchors, sources=sources, model_name=model_name, context=context,
+            base_url=base_url, api_key=api_key, disable_thinking=disable_thinking
+        )
+        if not rows:
+            Logger.warning('🟡 No triplets generated.')
+            return
+
+        os.makedirs(output_path, exist_ok=True)
+        df, rejected = quality_gate.apply(pd.DataFrame(rows))
+        Logger.info(quality_gate.report(df, rejected))
+        if len(rejected):
+            rejected.to_csv(os.path.join(output_path, 'rejected_qa.csv'), index=False)
+        if df.empty:
+            Logger.warning('🟡 Every generated pair was rejected by the quality gate.')
+            return
+        df.to_csv(os.path.join(output_path, 'embeddings_qa.csv'), index=False)
+        if store_jsonl:
+            df.to_json(
+                os.path.join(output_path, 'embeddings_qa.jsonl'),
+                orient='records', lines=True, force_ascii=False
+            )
+        Logger.info(f'🟢 Generated {len(df)} triplets -> {output_path}')
+
+    def mine_negatives(
         self,
-        data_path: str,
+        input_csv: str,
         output_path: str,
-        model_name: str = 'phi4',
-        language: LanguageType = LanguageType.ES
+        model_name: str = DEFAULT_NEGATIVE_MINING_MODEL,
+        num_negatives: int = 1
     ) -> None:
         """
-        Summarizes markdown files from a specified directory and saves the summaries to an output directory.
+        Enrich a (query, answer) CSV with a corpus-grounded hard negative,
+        mined by embedding similarity rather than authored by the LLM.
 
         Args:
-            data_path (str): The path to the directory containing markdown files to be summarized.
-            output_path (str): The path to the directory where the summarized markdown files will be saved.
-            model_name (str): The name of the language model to be used for summarization (default is 'phi4').
-            language (LanguageType): The language type for the summarization (default is Spanish).
+            input_csv (str): CSV with 'query' and 'answer' columns (e.g. the
+                              output of `create_embeddings`).
+            output_path (str): Directory where the enriched CSV is written.
+            model_name (str): Baseline SentenceTransformer model for mining.
+            num_negatives (int): Hard negatives to mine per query.
         """
-        Logger.info('🚀 Processing summarization ...')
-        llm = LLM(model=model_name)
-        md_files = [
-            (root, f) for root, _, files in os.walk(data_path)
-            for f in files if os.path.splitext(f)[1] == MarkDowndExtension
-        ]
-        Logger.info(f'📄 Found {len(md_files)} markdown files in {data_path}')
-        for idx, (root, filename) in enumerate(tqdm(md_files, ascii=True, ncols=75, desc='📂 Reading files'), 1):
-                name, ext = os.path.splitext(filename)
-                Logger.info(f'[{idx}/{len(md_files)}] Processing: {filename}')
-                t0 = time.time()
-                content = read_data(filename=os.path.join(root, filename))
-                if content is None:
-                    continue
-                extractor = SummarizeExtractor(
-                    text=content, llm=llm
-                )
-                extractor.filename = filename
-                extraction = extractor.extract(language=language)
-                save_markdown(
-                    file_content=extraction, filename=name+'.md',
-                    output_path=output_path
-                )
-                Logger.info(f'✅ {filename} done in {time.time() - t0:.1f}s')
-        Logger.info('🟢 Process done!')
+        Logger.info('🚀 Mining corpus hard negatives ...')
+        df = read_csv(input_csv)
+        corpus = df['answer'].dropna().unique().tolist()
+        mined = mine_hard_negatives_for(
+            df=df, corpus=corpus, model_name=model_name, num_negatives=num_negatives
+        )
+        os.makedirs(output_path, exist_ok=True)
+        out_file = os.path.join(output_path, os.path.basename(input_csv))
+        mined.to_csv(out_file, index=False)
+        Logger.info(f'🟢 Mined negatives -> {out_file}')
+
+    def export_ragval(
+        self,
+        input_csv: str,
+        output_path: str,
+        query_col: str = 'query',
+        answer_col: str = 'answer',
+        source_col: str = 'source_file'
+    ) -> None:
+        """
+        Derive the context-retrieval evaluation set from a generated CSV.
+
+        Emits the schema Tesis-RAG expects (id, pregunta, chunk_id,
+        chunk_content, documento), so a single generation feeds both the
+        embedding trainer and the RAG evaluator, and the passage's source
+        document travels with every row — which is what allows the
+        document-grouped split that removes the train/test leakage.
+
+        Args:
+            input_csv (str): CSV produced by `create_embeddings`.
+            output_path (str): Directory where ragval_dataset.csv is written.
+            query_col (str): Column holding the query.
+            answer_col (str): Column holding the passage.
+            source_col (str): Column holding the source document filename.
+        """
+        Logger.info('🚀 Exporting RAG evaluation set ...')
+        df = read_csv(input_csv)
+        out = pd.DataFrame({
+            'id': range(1, len(df) + 1),
+            'pregunta': df[query_col],
+            # Same hash as Tesis-RAG/src/data/loader.py, so chunk ids line up.
+            'chunk_id': df[answer_col].map(
+                lambda c: hashlib.sha256(str(c).encode()).hexdigest()[:12]
+            ),
+            'chunk_content': df[answer_col],
+            'documento': df[source_col],
+        })
+        os.makedirs(output_path, exist_ok=True)
+        out_file = os.path.join(output_path, 'ragval_dataset.csv')
+        out.to_csv(out_file, index=False)
+        Logger.info(
+            f'🟢 {len(out)} questions over {out.chunk_id.nunique()} chunks '
+            f'from {out.documento.nunique()} documents -> {out_file}'
+        )
 
 
 if __name__ == '__main__':

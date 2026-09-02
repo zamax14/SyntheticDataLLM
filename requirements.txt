@@ -1,8 +1,7 @@
 jsonargparse[signatures,urls]
-langchain
-langchain-ollama
-pydantic
 tqdm
 docling
-polars
 pandas
+distilabel[openai]
+sentence-transformers>=3.3
+datasets

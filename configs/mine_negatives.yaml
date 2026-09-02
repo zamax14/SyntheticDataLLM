@@ -1,0 +1,11 @@
+# CSV produced by `create_embeddings` (needs 'query' and 'answer' columns).
+input_csv: ./qa_embeddings_output/embeddings_qa.csv
+
+# Where the enriched CSV (with 'hard_negative_mined') will be written.
+output_path: ./qa_embeddings_output/mined
+
+# Baseline multilingual embedding model used to mine negatives.
+model_name: sentence-transformers/paraphrase-multilingual-mpnet-base-v2
+
+# Hard negatives to mine per query.
+num_negatives: 1

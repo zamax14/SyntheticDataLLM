@@ -1,0 +1,29 @@
+# The path where Markdown files will be read.
+data_path: ./output
+
+# The path for the generated CSV/JSONL.
+output_path: ./qa_embeddings_output
+
+# Model used to generate (query, answer, hard_negative) triplets via distilabel.
+# With base_url set below this is an Ollama tag; leave base_url empty and set an
+# OpenAI model id (e.g. gpt-4o-mini) to use the OpenAI API instead.
+model_name: qwen3.6:35b
+
+# OpenAI-compatible endpoint. The DGX runs `ollama serve` as a node daemon on
+# port 11434, outside SLURM, so the generation job needs no GPU of its own.
+# Empty -> the real OpenAI API (needs OPENAI_API_KEY exported).
+base_url: http://localhost:11434/v1
+
+# API key for that endpoint. Ollama ignores the value but the client requires one.
+api_key: ollama
+
+# MANDATORY for Ollama reasoning models such as qwen3.6: with thinking enabled
+# the answer comes back EMPTY (all tokens go to the `reasoning` field) and every
+# single generation is dropped. Set to false only for non-reasoning models.
+disable_thinking: true
+
+# Minimum paragraph length (in characters) to use as an anchor.
+min_tokens: 200
+
+# Also store a JSONL copy alongside the CSV.
+store_jsonl: false
