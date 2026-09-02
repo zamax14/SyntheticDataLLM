@@ -16,8 +16,6 @@ from jsonargparse import CLI
 from dataclasses import dataclass
 from core import quality_gate
 from core.paragraph import Paragraph
-from core.hard_negative_miner import DEFAULT_MODEL as DEFAULT_NEGATIVE_MINING_MODEL
-from core.hard_negative_miner import mine as mine_hard_negatives_for
 from utils.logger import Logger
 from utils.utils import read_data, read_csv, MarkDowndExtension
 
@@ -111,7 +109,7 @@ class SyntheticData:
         self,
         input_csv: str,
         output_path: str,
-        model_name: str = DEFAULT_NEGATIVE_MINING_MODEL,
+        model_name: str | None = None,
         num_negatives: int = 1
     ) -> None:
         """
@@ -123,13 +121,19 @@ class SyntheticData:
                               output of `create_embeddings`).
             output_path (str): Directory where the enriched CSV is written.
             model_name (str): Baseline SentenceTransformer model for mining.
+                              Defaults to the miner's multilingual baseline.
             num_negatives (int): Hard negatives to mine per query.
         """
         Logger.info('🚀 Mining corpus hard negatives ...')
+        # Imported here so the generation environment needs no sentence-transformers.
+        from core.hard_negative_miner import DEFAULT_MODEL
+        from core.hard_negative_miner import mine as mine_hard_negatives_for
+
         df = read_csv(input_csv)
         corpus = df['answer'].dropna().unique().tolist()
         mined = mine_hard_negatives_for(
-            df=df, corpus=corpus, model_name=model_name, num_negatives=num_negatives
+            df=df, corpus=corpus, model_name=model_name or DEFAULT_MODEL,
+            num_negatives=num_negatives
         )
         os.makedirs(output_path, exist_ok=True)
         out_file = os.path.join(output_path, os.path.basename(input_csv))
