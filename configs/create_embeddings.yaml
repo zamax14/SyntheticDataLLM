@@ -22,6 +22,10 @@ api_key: ollama
 # single generation is dropped. Set to false only for non-reasoning models.
 disable_thinking: true
 
+# Output budget per generation. distilabel's default (128) truncates the
+# query+negative JSON and the row is lost to IncompleteOutputException.
+max_new_tokens: 512
+
 # Minimum paragraph length (in characters) to use as an anchor.
 min_tokens: 200
 

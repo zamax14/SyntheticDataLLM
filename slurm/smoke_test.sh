@@ -8,7 +8,7 @@
 set -e
 
 # Mandatory before launching the full run: proves the answer is not empty (the
-# reasoning-mode trap), shows sample triplets, and times one anchor so the
+# reasoning-mode trap), shows sample triplets, and times the batch so the
 # ~13k-anchor run can be extrapolated. No --gres=gpu: Ollama owns its own GPU.
 
 pwd; hostname; date
@@ -25,8 +25,10 @@ echo "========================================"
 curl -sf --max-time 10 http://localhost:11434/api/tags > /dev/null \
   || { echo "ollama no responde en localhost:11434"; exit 1; }
 
+# A slice of one document: enough anchors to judge quality, few enough to
+# finish in a couple of minutes. The full corpus is ~13k anchors.
 rm -rf smoke && mkdir -p smoke/md
-ls output/*.md | head -2 | xargs -I{} cp {} smoke/md/
+head -120 "$(ls output/*.md | head -1)" > smoke/md/muestra.md
 
 SECONDS=0
 # Stacked configs: the second only overrides the paths (this CLI takes no

@@ -31,6 +31,7 @@ class SyntheticData:
         model_name: str = 'gpt-4o-mini',
         context: str | None = None,
         min_tokens: int = 200,
+        max_new_tokens: int = 512,
         store_jsonl: bool = False,
         base_url: str | None = None,
         api_key: str | None = None,
@@ -57,6 +58,8 @@ class SyntheticData:
             context (str): Domain context injected into the generation prompt.
                             Defaults to the IIEG Spanish context of the pipeline.
             min_tokens (int): Minimum paragraph length to use as an anchor.
+            max_new_tokens (int): Output budget per generation; too low truncates
+                                  the JSON and the row is dropped.
             store_jsonl (bool): Also store a JSONL copy alongside the CSV.
             base_url (str): OpenAI-compatible endpoint. Point it at Ollama
                             (http://localhost:11434/v1) to generate locally.
@@ -83,7 +86,8 @@ class SyntheticData:
 
         rows = generate_triplets(
             anchors=anchors, sources=sources, model_name=model_name, context=context,
-            base_url=base_url, api_key=api_key, disable_thinking=disable_thinking
+            max_new_tokens=max_new_tokens, base_url=base_url, api_key=api_key,
+            disable_thinking=disable_thinking
         )
         if not rows:
             Logger.warning('🟡 No triplets generated.')
