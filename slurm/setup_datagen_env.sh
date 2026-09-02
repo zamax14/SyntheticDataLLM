@@ -20,8 +20,8 @@ echo "========================================"
 
 conda env list | grep -q '^datagen ' || conda create -y -n datagen python=3.12
 conda activate datagen
-pip install -q "distilabel[openai]" jsonargparse pandas
-python -c "import distilabel, jsonargparse, pandas; print('datagen ok, distilabel', distilabel.__version__)"
+pip install -q "distilabel[openai]" instructor jsonargparse pandas
+python -c "import distilabel, instructor, jsonargparse, pandas; print('datagen ok, distilabel', distilabel.__version__)"
 
 echo "========================================"
 echo "  Check 'tesis' env (mining + export)"
