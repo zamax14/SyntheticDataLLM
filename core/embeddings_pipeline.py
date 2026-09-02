@@ -4,9 +4,8 @@
 # Description:
 #   Generates (query, answer, hard_negative) triplets for embedding model
 #   fine-tuning using distilabel's GenerateSentencePair task. Replaces the
-#   old translate+free-text-Q&A+regex pipeline for this use case: the LLM's
-#   structured output is enforced by the schema distilabel builds internally
-#   (no manual JSON parsing), and the prompt explicitly grounds the query in
+#   old translate+free-text-Q&A+regex pipeline for this use case: parsing is
+#   the library's, not ours, and the prompt explicitly grounds the query in
 #   the anchor's specific facts while producing a hard negative alongside it.
 # License: MIT
 # ==============================================================================
@@ -35,6 +34,7 @@ def build_pipeline(
     context: str = DEFAULT_CONTEXT_ES,
     temperature: float = 0.7,
     max_new_tokens: int = 512,
+    input_batch_size: int = 50,
     base_url: str | None = None,
     api_key: str | None = None,
     disable_thinking: bool = False,
@@ -54,8 +54,9 @@ def build_pipeline(
                  ground queries in the anchor's specific facts/entities.
         temperature: Sampling temperature for the LLM.
         max_new_tokens: Output budget per generation. distilabel's default (128)
-                        truncates the query+negative pair mid-JSON and the row is
-                        lost to `IncompleteOutputException`.
+                        truncates the query+negative pair mid-answer and the row
+                        is lost.
+        input_batch_size: Anchors dispatched concurrently to the server.
         base_url: OpenAI-compatible endpoint. Point it at Ollama
                   (http://localhost:11434/v1) to generate locally; leave unset
                   for the real OpenAI API.
@@ -92,8 +93,13 @@ def build_pipeline(
             hard_negative=True,
             action='query',
             context=context,
+            input_batch_size=input_batch_size,
             llm=OpenAILLM(**llm_kwargs),
-            use_default_structured_output=True,
+            # Structured output (instructor, tool-calling mode) collapses on this
+            # server: measured 0/20 anchors against 19/20 with the task's own
+            # parser, and 3.5x slower. A row the parser cannot read comes back
+            # empty instead of killing the whole batch.
+            use_default_structured_output=False,
         )
         load_data >> generate_pairs
     return pipeline
@@ -105,6 +111,7 @@ def generate_triplets(
     model_name: str = 'gpt-4o-mini',
     context: str = DEFAULT_CONTEXT_ES,
     max_new_tokens: int = 512,
+    input_batch_size: int = 50,
     base_url: str | None = None,
     api_key: str | None = None,
     disable_thinking: bool = False,
@@ -119,6 +126,7 @@ def generate_triplets(
         model_name: Model id used for generation.
         context: Domain context injected into the generation prompt.
         max_new_tokens: Output budget per generation.
+        input_batch_size: Anchors dispatched concurrently to the server.
         base_url: OpenAI-compatible endpoint (e.g. an Ollama server).
         api_key: API key for that endpoint.
         disable_thinking: Disable the model's reasoning mode (Ollama).
@@ -139,6 +147,7 @@ def generate_triplets(
         model_name=model_name,
         context=context,
         max_new_tokens=max_new_tokens,
+        input_batch_size=input_batch_size,
         base_url=base_url,
         api_key=api_key,
         disable_thinking=disable_thinking,

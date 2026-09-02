@@ -79,8 +79,12 @@ python pdf2md.py convert --config configs/pdf2md.yaml
 
 Generates `(query, answer, hard_negative)` triplets — one query per paragraph, explicitly
 grounded in that paragraph's facts/entities, plus a hard negative authored alongside it.
-Structured output is enforced by `distilabel`'s `GenerateSentencePair` (no manual JSON
-parsing). Writes `embeddings_qa.csv`.
+`distilabel`'s `GenerateSentencePair` owns the prompt and the parsing. Writes
+`embeddings_qa.csv`.
+
+> ⚠️ Do not turn `use_default_structured_output` back on for an Ollama-served model: its
+> tool-calling mode collapses on real anchors — measured **0/20** against **19/20** with the
+> task's own parser, and 3.5× slower.
 
 Generated pairs go through an automated **quality gate** before being written (the criteria of
 protocol section 10.3): unsubstituted `{placeholders}`, meta-instructions to the generator,

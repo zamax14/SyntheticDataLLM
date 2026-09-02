@@ -26,6 +26,10 @@ disable_thinking: true
 # query+negative JSON and the row is lost to IncompleteOutputException.
 max_new_tokens: 512
 
+# Anchors dispatched concurrently to the server. Raising it only helps up to
+# the number of parallel slots the Ollama daemon serves.
+input_batch_size: 50
+
 # Minimum paragraph length (in characters) to use as an anchor.
 min_tokens: 200
 
