@@ -32,6 +32,7 @@ class SyntheticData:
         context: str | None = None,
         min_tokens: int = 200,
         max_new_tokens: int = 512,
+        input_batch_size: int = 50,
         store_jsonl: bool = False,
         base_url: str | None = None,
         api_key: str | None = None,
@@ -41,10 +42,10 @@ class SyntheticData:
         Create (query, answer, hard_negative) triplets for embedding model
         fine-tuning, grounded in the specific facts of each paragraph.
 
-        Unlike `create`, this uses distilabel's GenerateSentencePair task:
-        structured output is enforced by the library (no manual JSON
-        parsing), and each anchor paragraph yields a query anchored in its
-        entities/figures plus an LLM-authored hard negative in one call.
+        Uses distilabel's GenerateSentencePair task: the library owns the
+        prompt and the parsing, and each anchor paragraph yields a query
+        anchored in its entities/figures plus an LLM-authored hard negative
+        in one call.
         Generated pairs go through the protocol's quality gate before being
         written; rejects are kept in rejected_qa.csv for inspection.
 
@@ -59,7 +60,8 @@ class SyntheticData:
                             Defaults to the IIEG Spanish context of the pipeline.
             min_tokens (int): Minimum paragraph length to use as an anchor.
             max_new_tokens (int): Output budget per generation; too low truncates
-                                  the JSON and the row is dropped.
+                                  the answer and the row is dropped.
+            input_batch_size (int): Anchors dispatched concurrently to the server.
             store_jsonl (bool): Also store a JSONL copy alongside the CSV.
             base_url (str): OpenAI-compatible endpoint. Point it at Ollama
                             (http://localhost:11434/v1) to generate locally.
@@ -86,8 +88,8 @@ class SyntheticData:
 
         rows = generate_triplets(
             anchors=anchors, sources=sources, model_name=model_name, context=context,
-            max_new_tokens=max_new_tokens, base_url=base_url, api_key=api_key,
-            disable_thinking=disable_thinking
+            max_new_tokens=max_new_tokens, input_batch_size=input_batch_size,
+            base_url=base_url, api_key=api_key, disable_thinking=disable_thinking
         )
         if not rows:
             Logger.warning('🟡 No triplets generated.')
