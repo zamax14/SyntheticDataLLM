@@ -3,5 +3,6 @@ tqdm
 docling
 pandas
 distilabel[openai]
+instructor  # structured output for distilabel's OpenAILLM
 sentence-transformers>=3.3
 datasets
