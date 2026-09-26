@@ -4,13 +4,25 @@
 tools_csv: ../Tesis-Agent/data/tools.csv
 
 # Smoke test: two tools of different families, a handful of rows.
-only_tools: [bar_chart, descriptive_stats]
+only_tools: [heatmap, histogram]
 
 # tool_dataset.csv lands here, with an empty `valida` column for manual review.
 output_path: ./tool_dataset_output/smoke
 
 # Smoke volume: 2 tools x 3 requests and 2 themes x 3 distractors.
 queries_per_tool: 3
+
+# Tools of another family that a request could be mistaken for (the tool's own
+# family is always included). Their full description goes into the prompt so
+# each request carries the cue that tells them apart.
+confusable_tools:
+  heatmap: [heat_map, correlation_heatmap]
+  heat_map: [choropleth_map]
+  correlation_heatmap: [correlation_matrix]
+  histogram: [frequency_distribution]
+  summary_table: [descriptive_stats]
+  to_markdown_table: [summary_table]
+  aggregate: [execute_query]
 
 # Distractor tools only sit in the index, so filtering is a real retrieval
 # problem: with the 24 tools alone the whole list fits in an LLM prompt.

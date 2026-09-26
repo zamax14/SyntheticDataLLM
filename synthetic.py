@@ -176,6 +176,7 @@ class SyntheticData:
         queries_per_tool: int = 20,
         distractors_per_theme: int = 10,
         only_tools: list[str] | None = None,
+        confusable_tools: dict[str, list[str]] | None = None,
         model_name: str = 'gpt-4o-mini',
         base_url: str | None = None,
         api_key: str | None = None,
@@ -200,6 +201,9 @@ class SyntheticData:
             queries_per_tool (int): Requests asked per tool.
             distractors_per_theme (int): Distractor tools asked per theme.
             only_tools (list[str]): Restrict to these tools (smoke test).
+            confusable_tools (dict): Cross-family confusions, tool -> tools a
+                                     request could be mistaken for; the prompt
+                                     shows them next to the tool's own family.
             model_name (str): Model id (OpenAI id, or the Ollama tag).
             base_url (str): OpenAI-compatible endpoint.
             api_key (str): API key for that endpoint.
@@ -217,7 +221,8 @@ class SyntheticData:
         llm = tool_queries.ToolLLM(model_name, base_url, api_key, disable_thinking,
                                    temperature, max_new_tokens, seed)
 
-        queries = tool_queries.generate_queries(llm, tools, queries_per_tool, workers)
+        queries = tool_queries.generate_queries(llm, tools, queries_per_tool, workers,
+                                                confusable_tools)
         distractors = tool_queries.generate_distractors(
             llm, tools, {'near': near_themes, 'far': far_themes}, distractors_per_theme, workers
         )
