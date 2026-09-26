@@ -111,6 +111,27 @@ class SyntheticData:
             )
         Logger.info(f'🟢 Generated {len(df)} triplets -> {output_path}')
 
+    def refilter(self, input_csv: str, output_path: str) -> None:
+        """
+        Re-apply the anchor cleaning and the quality gate to an already
+        generated CSV, so a new gate rule reaches an existing dataset without
+        regenerating it.
+
+        Args:
+            input_csv (str): CSV produced by `create_embeddings`.
+            output_path (str): Directory for the new embeddings_qa.csv and
+                               rejected_qa.csv (never the input's directory).
+        """
+        Logger.info('🚀 Re-applying the quality gate ...')
+        df = read_csv(input_csv)
+        df['answer'] = df['answer'].map(quality_gate.clean_passage)
+        kept, rejected = quality_gate.apply(df)
+        Logger.info(quality_gate.report(kept, rejected))
+        os.makedirs(output_path, exist_ok=True)
+        rejected.to_csv(os.path.join(output_path, 'rejected_qa.csv'), index=False)
+        kept.to_csv(os.path.join(output_path, 'embeddings_qa.csv'), index=False)
+        Logger.info(f'🟢 {len(kept)} triplets kept -> {output_path}')
+
     def mine_negatives(
         self,
         input_csv: str,
