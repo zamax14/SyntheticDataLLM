@@ -21,11 +21,11 @@ echo "========================================"
 python synthetic.py export_ragval --config configs/export_ragval.yaml
 
 # One generation feeds both downstream repos.
-MINED=qa_embeddings_output/mined/embeddings_qa.csv
+MINED=qa_embeddings_output/iieg_diverso_2023_2025/mined/embeddings_qa.csv
 cp "$MINED" /raid/home/alexzm/scripts/Tesis-Embeddings/datasets/embeddings_qa.csv
-cp qa_embeddings_output/ragval/ragval_dataset.csv \
+cp qa_embeddings_output/iieg_diverso_2023_2025/ragval/ragval_dataset.csv \
    /raid/home/alexzm/scripts/Tesis-RAG/dataset/ragval_dataset.csv
 
-wc -l "$MINED" qa_embeddings_output/ragval/ragval_dataset.csv
+wc -l "$MINED" qa_embeddings_output/iieg_diverso_2023_2025/ragval/ragval_dataset.csv
 
 pwd; hostname; date
