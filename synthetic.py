@@ -189,8 +189,10 @@ class SyntheticData:
         """
         Build the tool-retrieval evaluation set (E3): requests whose best tool
         is one of the agent's MCP tools, plus distractor tools that only sit in
-        the index. The output keeps a `valida` column for manual review;
-        `export_ragval` drops the rows marked 'n'.
+        the index. A round-trip judge (the same LLM picking the best tool
+        for each request) marks disagreements in `revisar`; the `valida`
+        column is left for manual review and `export_ragval` drops the rows
+        marked 'n'.
 
         Args:
             tools_csv (str): Tesis-Agent's data/tools.csv (name, family, description).
@@ -226,6 +228,11 @@ class SyntheticData:
         distractors = tool_queries.generate_distractors(
             llm, tools, {'near': near_themes, 'far': far_themes}, distractors_per_theme, workers
         )
+        if len(queries):
+            queries['juez'] = tool_queries.judge(llm, tools, queries, workers)
+            queries['revisar'] = (queries['juez'] != queries['tool']).map({True: 'si', False: ''})
+            Logger.info(f'Round-trip judge disagrees on {(queries.revisar == "si").sum()} '
+                        f'of {len(queries)} requests (marked revisar = si)')
         df = pd.concat([queries, tool_queries.index_rows(tools), distractors], ignore_index=True)
         df['valida'] = ''
 

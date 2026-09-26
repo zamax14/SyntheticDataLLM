@@ -5,8 +5,9 @@ tools_csv: ../Tesis-Agent/data/tools.csv
 # tool_dataset.csv lands here, with an empty `valida` column for manual review.
 output_path: ./tool_dataset_output/e3_transfer_1
 
-# 24 tools x 20 = 480 requests before review; the target is >= 15 valid per tool.
-queries_per_tool: 20
+# 24 tools x 25 = 600 requests before review; the target is >= 15 valid per tool,
+# so there is room to drop the ambiguous ones.
+queries_per_tool: 25
 
 # Tools of another family that a request could be mistaken for (the tool's own
 # family is always included). Their full description goes into the prompt so
