@@ -83,7 +83,7 @@ class SyntheticData:
                     continue
                 content = read_data(filename=os.path.join(root, filename))
                 paragraph = Paragraph(text=content, min_tokens=min_tokens)
-                anchors.extend(list(paragraph))
+                anchors.extend(quality_gate.clean_passage(p) for p in paragraph)
                 sources.extend([filename] * len(paragraph))
 
         rows = generate_triplets(

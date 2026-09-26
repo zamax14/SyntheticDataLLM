@@ -31,6 +31,17 @@ META = re.compile(
     re.IGNORECASE,
 )
 
+# Page headers docling glues onto the passage that follows them: "Página 20 de 40"
+# anywhere, or a bare "50 de 91" opening the passage. The bare form only counts
+# before a capitalized word, so "5 de 10 personas..." is left alone.
+PAGE_HEADER = re.compile(r'P[aá]gina\s+\d+\s+de\s+\d+\s*|^\s*\d{1,3}\s+de\s+\d{1,3}\s+(?=[A-ZÁÉÍÓÚÑ¿])')
+
+# Anchors that are document scaffolding, not content: a table of contents (dot
+# leaders), and questionnaire annexes (Word checkbox glyphs and broken
+# cross-references).
+TOC_LEADER = re.compile(r'\.{4,}|…{2,}')
+QUESTIONNAIRE = re.compile('[]|No se encuentra el origen de la referencia')
+
 STOPWORDS = frozenset("""
 a al algo alguna algunas alguno algunos ante antes aquel aquella aquellas aquellos aqui asi aun aunque
 cada como con contra cual cuales cuando cuanta cuantas cuanto cuantos de del desde donde dos e el ella
@@ -45,6 +56,33 @@ tambien tan tanto te tiene tienen toda todas todo todos tras un una unas uno uno
 # implausible rejection rate, tune these before touching the rules.
 MIN_ANCHOR_TOKENS = 2  # content tokens the query must share with its passage
 MIN_STRONG_TOKENS = 1  # figures/proper nouns it must share, to be discriminative
+# ponytail: directory heuristic. Measured on the diverse IIEG corpus: under these
+# fractions only lists of names (authors, city council) remain; tables and ranked
+# lists of municipalities carry figures and pass.
+MIN_PROSE_FRACTION = 0.15   # lowercase words among all tokens
+MIN_FIGURE_FRACTION = 0.05  # numeric tokens among all tokens
+
+
+def clean_passage(text: str) -> str:
+    """Strip page headers glued onto a passage and normalize Word's private-use
+    bullet glyph; the content itself is kept."""
+    return PAGE_HEADER.sub('', str(text)).replace('\uf0b7', '•').strip()
+
+
+def _is_noise(passage: str) -> bool:
+    """
+    True when the anchor is document scaffolding: a table of contents, a
+    questionnaire annex, or a directory of names. A query about such a
+    passage cannot be answered from domain content.
+    """
+    if len(TOC_LEADER.findall(passage)) >= 2 or QUESTIONNAIRE.search(passage):
+        return True
+    tokens = passage.split()
+    if not tokens:
+        return True
+    prose = sum(bool(re.fullmatch(r'[a-záéíóúñü]{3,}[,.;:]?', t)) for t in tokens) / len(tokens)
+    figures = sum(bool(re.fullmatch(r'[\d.,%$()-]+', t)) for t in tokens) / len(tokens)
+    return prose < MIN_PROSE_FRACTION and figures < MIN_FIGURE_FRACTION
 
 
 def _normalize(text: str) -> str:
@@ -82,10 +120,14 @@ def reject_reason(query: str, answer: str) -> str | None:
     non-discriminative, i.e. equally applicable to any passage in the corpus,
     and queries anchored only in generic vocabulary, with no figure or proper
     noun from the passage.
+    Beyond the protocol, anchors that are document scaffolding (tables of
+    contents, questionnaires, name directories) are rejected as noise.
     Exact duplicate queries are handled by `apply`, which needs the whole frame.
     """
     if not isinstance(query, str) or not query.strip():
         return 'empty'
+    if _is_noise(str(answer)):
+        return 'noise_anchor'
     if PLACEHOLDER.search(query):
         return 'placeholder'
     if META.search(query):
@@ -154,6 +196,25 @@ if __name__ == '__main__':
     assert reject_reason('', passage) == 'empty'
     assert reject_reason('población de Acatic en 2020 por sexo', passage) is None
     assert reject_reason('habitantes de Acatic 23,241', passage) is None
+
+    # Scaffolding anchors found in the diverse IIEG corpus.
+    toc = ('Análisis demográfico del área circundante ........................ 3 Del área de '
+           'influencia de 500m ........................ 6 Unidades económicas ........ 19')
+    form = '13. ¿Ha aumentado los precios en los últimos 3 meses?  Sí  No  No sé'
+    names = ('Regidores (as) Ana Isabel Robles Jiménez María Andrea Medrano Ortega Humberto '
+             'Gabriel Trujillo Jiménez Leticia Fabiola Cuan Ramírez')
+    ranked = ('Zona Metropolitana de Guadalajara 68.4% Puerto Vallarta 6.6% Zapotlán el Grande '
+              '3.2% Autlán de Navarro 3.0% Lagos de Moreno 2.2%')
+    for noise in (toc, form, names):
+        assert reject_reason('Ana Isabel Robles Jiménez Regidores 19 Sí', noise) == 'noise_anchor', noise
+    assert reject_reason('participación de Puerto Vallarta 6.6%', ranked) is None
+
+    assert clean_passage('Página 20 de 40 Si bien DiDi Food...') == 'Si bien DiDi Food...'
+    assert clean_passage('50 de 91 Con respecto a las ventas') == 'Con respecto a las ventas'
+    assert clean_passage('el índice optimista. Página 9 de 98 Con respecto') == \
+        'el índice optimista. Con respecto'
+    assert clean_passage('5 de 10 personas encuestadas') == '5 de 10 personas encuestadas'
+    assert clean_passage('\uf0b7 Jalisco es la tercera entidad') == '• Jalisco es la tercera entidad'
 
     df = pd.DataFrame({
         'query': ['población de Acatic en 2020', 'Población de Acatic en 2020', '{question}'],
