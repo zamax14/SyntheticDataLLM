@@ -167,6 +167,78 @@ class SyntheticData:
         mined.to_csv(out_file, index=False)
         Logger.info(f'🟢 Mined negatives -> {out_file}')
 
+    def create_tool_dataset(
+        self,
+        tools_csv: str,
+        output_path: str,
+        near_themes: list[str],
+        far_themes: list[str],
+        queries_per_tool: int = 20,
+        distractors_per_theme: int = 10,
+        only_tools: list[str] | None = None,
+        model_name: str = 'gpt-4o-mini',
+        base_url: str | None = None,
+        api_key: str | None = None,
+        disable_thinking: bool = False,
+        temperature: float = 0.8,
+        max_new_tokens: int = 4096,
+        seed: int | None = 42,
+        workers: int = 8
+    ) -> None:
+        """
+        Build the tool-retrieval evaluation set (E3): requests whose best tool
+        is one of the agent's MCP tools, plus distractor tools that only sit in
+        the index. The output keeps a `valida` column for manual review;
+        `export_ragval` drops the rows marked 'n'.
+
+        Args:
+            tools_csv (str): Tesis-Agent's data/tools.csv (name, family, description).
+            output_path (str): Directory where tool_dataset.csv is written.
+            near_themes (list[str]): Themes close to the agent's work (analytics,
+                                     visualization, geo) for hard distractors.
+            far_themes (list[str]): Unrelated themes for easy distractors.
+            queries_per_tool (int): Requests asked per tool.
+            distractors_per_theme (int): Distractor tools asked per theme.
+            only_tools (list[str]): Restrict to these tools (smoke test).
+            model_name (str): Model id (OpenAI id, or the Ollama tag).
+            base_url (str): OpenAI-compatible endpoint.
+            api_key (str): API key for that endpoint.
+            disable_thinking (bool): Required for Ollama reasoning models.
+            temperature (float): Sampling temperature.
+            max_new_tokens (int): Output budget per call.
+            seed (int): Sampling seed, for reproducibility.
+            workers (int): Concurrent calls to the server.
+        """
+        Logger.info('🚀 Generating the tool-retrieval set ...')
+        from core import tool_queries
+        tools = read_csv(tools_csv)
+        if only_tools:
+            tools = tools[tools['name'].isin(only_tools)].reset_index(drop=True)
+        llm = tool_queries.ToolLLM(model_name, base_url, api_key, disable_thinking,
+                                   temperature, max_new_tokens, seed)
+
+        queries = tool_queries.generate_queries(llm, tools, queries_per_tool, workers)
+        distractors = tool_queries.generate_distractors(
+            llm, tools, {'near': near_themes, 'far': far_themes}, distractors_per_theme, workers
+        )
+        df = pd.concat([queries, tool_queries.index_rows(tools), distractors], ignore_index=True)
+        df['valida'] = ''
+
+        os.makedirs(output_path, exist_ok=True)
+        out_file = os.path.join(output_path, 'tool_dataset.csv')
+        df.to_csv(out_file, index=False)
+        per_tool = queries.groupby('tool').size() if len(queries) else pd.Series(dtype=int)
+        Logger.info(
+            f'🟢 {len(queries)} requests over {len(tools)} tools '
+            f'(min {per_tool.min() if len(per_tool) else 0} per tool), '
+            f'{len(distractors)} distractors '
+            f'({(distractors.kind == "distractor_near").sum() if len(distractors) else 0} near) '
+            f'-> {out_file}'
+        )
+        missing = set(tools['name']) - set(per_tool.index)
+        if missing:
+            Logger.warning(f'🟡 Tools without requests: {sorted(missing)}')
+
     def export_ragval(
         self,
         input_csv: str,
@@ -183,6 +255,8 @@ class SyntheticData:
         embedding trainer and the RAG evaluator, and the passage's source
         document travels with every row — which is what allows the
         document-grouped split that removes the train/test leakage.
+        Rows marked 'n' in an optional `valida` column (manual review) are
+        dropped; rows without a query are exported too, as index-only chunks.
 
         Args:
             input_csv (str): CSV produced by `create_embeddings`.
@@ -193,6 +267,10 @@ class SyntheticData:
         """
         Logger.info('🚀 Exporting RAG evaluation set ...')
         df = read_csv(input_csv)
+        if 'valida' in df:
+            rejected = df['valida'].astype(str).str.strip().str.lower().eq('n')
+            Logger.info(f'Manual review: {rejected.sum()} rows marked invalid, dropped')
+            df = df[~rejected].reset_index(drop=True)
         out = pd.DataFrame({
             'id': range(1, len(df) + 1),
             'pregunta': df[query_col],
@@ -207,7 +285,7 @@ class SyntheticData:
         out_file = os.path.join(output_path, 'ragval_dataset.csv')
         out.to_csv(out_file, index=False)
         Logger.info(
-            f'🟢 {len(out)} questions over {out.chunk_id.nunique()} chunks '
+            f'🟢 {out.pregunta.notna().sum()} questions over {out.chunk_id.nunique()} chunks '
             f'from {out.documento.nunique()} documents -> {out_file}'
         )
 
