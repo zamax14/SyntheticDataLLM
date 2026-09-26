@@ -1,0 +1,10 @@
+# Regenerate the requests of some tools only, on top of create_tool_dataset.yaml:
+#   sbatch slurm/create_tool_dataset.sh configs/create_tool_dataset.yaml --config configs/redo_tool_queries.yaml
+# Then append the positive rows of <output_path>/tool_dataset.csv to the main one,
+# replacing those tools' rows. e3_transfer_1: histogram came back as requests for
+# its siblings (the judge disagreed on 18 of 20).
+only_tools: [histogram]
+near_themes: []
+far_themes: []
+seed: 7
+output_path: ./tool_dataset_output/e3_transfer_1_redo
