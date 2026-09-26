@@ -1,0 +1,36 @@
+# Smoke test of the tool-retrieval set (E3): minutes, not the full volume.
+# The tools come from Tesis-Agent:
+#   python scripts/export_tools.py   (in Tesis-Agent) -> data/tools.csv
+tools_csv: ../Tesis-Agent/data/tools.csv
+
+# Smoke test: two tools of different families, a handful of rows.
+only_tools: [bar_chart, descriptive_stats]
+
+# tool_dataset.csv lands here, with an empty `valida` column for manual review.
+output_path: ./tool_dataset_output/smoke
+
+# Smoke volume: 2 tools x 3 requests and 2 themes x 3 distractors.
+queries_per_tool: 3
+
+# Distractor tools only sit in the index, so filtering is a real retrieval
+# problem: with the 24 tools alone the whole list fits in an LLM prompt.
+distractors_per_theme: 3
+
+# Close to the agent's work: the hard distractors. Review them by hand — one
+# that does the same as an agent tool must be marked `valida = n`.
+near_themes:
+  - modelos predictivos y pronóstico de series de tiempo
+
+# Unrelated to the agent: the easy distractors.
+far_themes:
+  - correo electrónico
+
+# Same server and flags as create_embeddings (see that config for the why).
+model_name: qwen3.8:latest
+base_url: http://localhost:11434/v1
+api_key: ollama
+disable_thinking: true
+temperature: 0.8
+max_new_tokens: 4096
+seed: 42
+workers: 8
