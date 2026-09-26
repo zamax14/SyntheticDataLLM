@@ -1,0 +1,5 @@
+8. Llenar los registros para realizar la ruta por la vía más corta, y repetir el proceso para todas las capas de puntos. (Travel mode > driving-car, Input Start Poin Layer es la capa de la unidad de salud > Las cruces, Start ID Field es alguna columna que sirve de identificador > Nombre de la unidad de salud, Input End Point Layer es la capa de los centroides de Agebs y las localidades (40 en 40) y como identificador ponemos la columna de nombre de localidad, Travel preference > shortest. ya que es la ruta por la vía corta, Layer mode > all-by-all. Página 6
+
+9. Teniendo las 15 capas con las rutas, verificar en google maps las rutas, ya que en ocasiones la línea va en sentido contrario o no existe algún tipo de vía por errores de topología de la base de datos. Página 7
+
+11. Calcular nuevamente las distancias ya que algunas se modificaron (Tabla de atributos > habilitar la edición > abrir calculadora de campos > crear un campo nuevo > añadimos las características del campo > realizar el cálculo de la fórmula > $length /1000.

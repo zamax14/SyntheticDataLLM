@@ -1,0 +1,1 @@
+Industria Manufacturera, Maquiladora y de Servicios de Exportación, IMMEX La estadística mensual sobre establecimientos con programa de la Industria Manufacturera, Maquiladora y de Servicios de Exportación (IMMEX) es publicada por INEGI de manera mensual. Este mes se difundió el dato correspondiente a junio de 2025.

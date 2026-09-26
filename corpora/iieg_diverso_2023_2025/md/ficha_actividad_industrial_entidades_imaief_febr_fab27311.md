@@ -1,0 +1,17 @@
+De acuerdo con cifras del Indicador Mensual de la Actividad Industrial por Entidad Federativa (IMAIEF) reportadas por INEGI, la actividad industrial en Jalisco creció 3.0% a tasa anual en febrero de 2025 con cifras originales, cifra superior a la del mes inmediato anterior, cuando se presentó una caída de 1.2% anual. Cabe señalar que, con cifras desestacionalizadas, la variación anual de Jalisco fue de 2.3%.
+
+En variación anual en cifras originales, el desempeño de la actividad industrial de Jalisco en febrero de 2025 fue superior al nacional, que registró una disminución anual de 1.3%. El crecimiento de 3.0% de Jalisco ubicó a la entidad en el lugar 13 a nivel nacional en cuanto a desempeño de la actividad industrial.
+
+Indicador Mensual de la Actividad Industrial de Jalisco. Serie desestacionalizadas y de tendencia-ciclo, febrero 2025 110.0 105.0 100.0 95.0 90.0 85.0 80.0 75.0 70.0 65.0 60.0 AGO ABR DIC AGO ABR DIC AGO ABR DIC AGO ABR DIC AGO ABR DIC AGO ABR DIC 2014        2016        2018        2020        2022        2024
+
+Con cifras desestacionalizadas, el desempeño de la actividad industrial de Jalisco en febrero de 2025 fue superior al nacional, que registró una disminución anual de 1.3%. El crecimiento de 2.3% de Jalisco ubicó a la entidad en el lugar 18 a nivel nacional en cuanto a desempeño de la actividad industrial.
+
+En variación mensual con cifras desestacionalizadas, el desempeño de la actividad industrial de Jalisco en febrero de 2025 fue superior al nacional, que registró una disminución mensual de 1.2%. El crecimiento de 3.8% de Jalisco ubicó a la entidad en el octavo lugar a nivel nacional en cuanto a desempeño de la actividad industrial.
+
+Si bien la actividad industrial en Jalisco presentó un crecimiento anual de 3.0% en febrero de 2025, la industria de la construcción tuvo un incremento de 10.4% anual, siendo este sector el que ocasionó que la variación global de la actividad industrial en la entidad aumentara a una mayor tasa. Por su parte, las industrias manufactureras presentaron un crecimiento de 1.4% anual. Por otro lado, los sectores de minería y servicios públicos (industrias de energía eléctrica, suministro de agua y de gas), los cuales tienen una menor contribución en la variación total del sector industrial de Jalisco, presentaron variaciones anuales de 18.1% y -0.3%, respectivamente.
+
+Con relación a los sectores que componen las actividades secundarias, la industria de la construcción en Jalisco presentó un crecimiento de 10.4% a tasa anual en febrero de 2025, Además, la cifra de febrero de 2025 fue superior a la de febrero de 2024, cuando se presentó una disminución de 12.4% en la actividad de la industria de la construcción estatal. Asimismo, la variación estatal promedio de los últimos doce meses cambió de -9.4% a -7.5%.
+
+Respecto a la actividad de las industrias manufactureras en Jalisco, en febrero de 2025 se presentó un crecimiento de 1.4% a tasa anual. Sin embargo, el crecimiento de febrero de 2025 fue menor al de febrero de 2024, cuando se presentó un incremento de 1.6% en la actividad de las industrias manufactureras. Asimismo, la variación estatal promedio de los últimos doce meses se mantuvo sin cambios, en -1.7%.
+
+El desempeño estatal de la actividad de las industrias manufactureras, que mostró un crecimiento de 1.4% anual en febrero, fue superior al nacional, que registró una disminución anual de 0.3%. Jalisco se ubicó en el lugar 11 a nivel nacional en cuanto a desempeño de las industrias manufactureras.

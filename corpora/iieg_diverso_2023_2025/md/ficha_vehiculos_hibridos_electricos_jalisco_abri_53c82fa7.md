@@ -1,0 +1,1 @@
+Por cada millón de habitantes, la entidad que más vehículos registró en abril de 2025 con un total de 310.4 unidades fue Ciudad de México. Jalisco se ubica en la 7ª posición con un total de 90 unidades. Las entidades federativas con menos unidades vendidas por millón de habitantes en abril de 2025 son Nayarit con 12.1 y Guerrero con 11.1.

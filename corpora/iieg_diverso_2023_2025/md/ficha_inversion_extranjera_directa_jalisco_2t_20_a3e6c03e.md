@@ -1,0 +1,1 @@
+En comparación con otras entidades federativas, con las cifras originalmente publicadas, Jalisco se ubicó en el lugar 8 al segundo trimestre de 2025, con 326.13 mdd en atracción de IED. En el primer lugar se encuentra la Ciudad de México con 7,506.00 mdd.

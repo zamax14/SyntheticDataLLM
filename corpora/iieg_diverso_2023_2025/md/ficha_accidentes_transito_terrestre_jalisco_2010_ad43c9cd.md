@@ -1,0 +1,11 @@
+El 29 de julio de 2025, el INEGI publicó las cifras definitivas de accidentes de tránsito terrestre en zonas urbanas y suburbanas (ATUS) 2024. Por lo que el Instituto de Información Estadística y Geográfica de Jalisco (IIEG) muestra un breve análisis de la situación de los accidentes viales en el estado de Jalisco.
+
+Total de accidentes de tránsito De 2010 a 2024, los accidentes de tránsito en Jalisco disminuyeron de manera significativa en un 68.3% pasando de 56 mil 644 incidentes en 2010 a 17 mil 956 en 2024. El año 2024 registró un incremento del 25.6% respecto al año 2023. Del periodo aquí analizado se observa que, en el año 2021 se registró el número más bajo de accidentes de tránsito en el estado, con 12 mil 986, mientras que el 2010 fue el año que más accidentes de este tipo presentó (Ver gráfica 1).
+
+Clases de accidente De los 17 mil 956 accidentes de tránsito ocurridos en Jalisco durante 2024, se reportó que el 2.0% fue fatal1, mientras que los no fatales (estos hacen referencia a todo accidente de tránsito en el cual una o más personas resultan con lesiones con o sin consecuencia de muerte) fueron el 17.5% del total. El 80.5% de estos accidentes solo quedó en daños materiales. Cabe mencionar que de 2023 a 2024 los accidentes fatales se incrementaron en 19.1% pasando de 304 a 362 accidentes (Ver tabla 1).
+
+Comparativo de accidentes fatales por entidad federativa. En 2024, Jalisco se ubicó en el segundo lugar del ranking nacional en accidentes de tránsito fatales, registrando 362 eventos. La entidad federativa que presentó el mayor número fue el Estado de México con 379, la tercera posición la ocupó la Ciudad de México con 281 accidentes. Por el contrarios las tres entidades con el menor número de accidentes fatales fueron Colima con 37, Campeche con 34 y Tabasco con 30 eventos (Ver gráfica 2).
+
+Víctimas de accidentes de tránsito. El total de víctimas de accidentes de tránsito en Jalisco durante el año 2024 fue de 4 mil 720, de las cuales, 4 mil 337 resultaron heridas, 7.9% más que en 2023 y 383 fallecieron en el accidente, un incremento de 14.3% respecto al año anterior.
+
+Del periodo de 2010 a 2024, el 2020 fue el año en donde se registró el menor número de víctimas por accidente de tránsito con un total de 3 mil 305, en contra parte, el 2012 fue el año con el mayor número de víctimas, 9 mil 188 (Ver gráfica 3).
