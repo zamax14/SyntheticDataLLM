@@ -7,7 +7,10 @@
 #SBATCH --partition=dgx_large
 set -e
 
-# Usage: sbatch slurm/create_tool_dataset.sh [config]   (smoke: configs/smoke_tool_dataset.yaml)
+# Usage: sbatch slurm/create_tool_dataset.sh [config] [--key value ...]
+#   smoke:  configs/smoke_tool_dataset.yaml
+#   redo one tool: configs/create_tool_dataset.yaml --only_tools "[histogram]" --near_themes "[]" \
+#                  --far_themes "[]" --seed 7 --output_path ./tool_dataset_output/<exp>_redo
 
 # No --gres=gpu on purpose: generation talks over HTTP to the `ollama serve`
 # daemon already running on this node, which manages its own GPU outside SLURM.
@@ -26,6 +29,6 @@ echo "========================================"
 curl -sf --max-time 10 http://localhost:11434/api/tags > /dev/null \
   || { echo "ollama no responde en localhost:11434"; exit 1; }
 
-python synthetic.py create_tool_dataset --config "${1:-configs/create_tool_dataset.yaml}"
+python synthetic.py create_tool_dataset --config "${1:-configs/create_tool_dataset.yaml}" "${@:2}"
 
 pwd; hostname; date
