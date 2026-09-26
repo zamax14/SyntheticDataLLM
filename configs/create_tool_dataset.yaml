@@ -1,0 +1,50 @@
+# Tool-retrieval evaluation set (E3). The tools come from Tesis-Agent:
+#   python scripts/export_tools.py   (in Tesis-Agent) -> data/tools.csv
+tools_csv: ../Tesis-Agent/data/tools.csv
+
+# tool_dataset.csv lands here, with an empty `valida` column for manual review.
+output_path: ./tool_dataset_output/e3_transfer_1
+
+# 24 tools x 20 = 480 requests before review; the target is >= 15 valid per tool.
+queries_per_tool: 20
+
+# Distractor tools only sit in the index, so filtering is a real retrieval
+# problem: with the 24 tools alone the whole list fits in an LLM prompt.
+distractors_per_theme: 10
+
+# Close to the agent's work: the hard distractors. Review them by hand — one
+# that does the same as an agent tool must be marked `valida = n`.
+near_themes:
+  - modelos predictivos y pronóstico de series de tiempo
+  - regresión y modelos estadísticos
+  - limpieza y transformación de datos
+  - exportación e importación de archivos de datos
+  - visualizaciones avanzadas (diagramas de caja, treemaps, sankey, tableros)
+  - análisis geoespacial y geocodificación
+  - administración de bases de datos, respaldos y permisos
+  - reportes y documentos (PDF, Excel, presentaciones)
+  - muestreo, encuestas y ponderación
+  - consulta de indicadores en APIs estadísticas externas
+
+# Unrelated to the agent: the easy distractors.
+far_themes:
+  - correo electrónico
+  - calendario y reuniones
+  - gestión de archivos y carpetas
+  - clima y pronóstico meteorológico
+  - traducción de textos
+  - pagos y facturación
+  - gestión de usuarios de una aplicación
+  - mensajería y notificaciones
+  - búsqueda web y noticias
+  - control de versiones y despliegue de software
+
+# Same server and flags as create_embeddings (see that config for the why).
+model_name: qwen3.8:latest
+base_url: http://localhost:11434/v1
+api_key: ollama
+disable_thinking: true
+temperature: 0.8
+max_new_tokens: 4096
+seed: 42
+workers: 8

@@ -1,0 +1,5 @@
+# The reviewed tool_dataset.csv (rows with valida = n are dropped).
+input_csv: ./tool_dataset_output/e3_transfer_1/tool_dataset.csv
+
+# Where ragval_dataset.csv is written; copy it to Tesis-RAG/dataset/toolval_dataset.csv.
+output_path: ./tool_dataset_output/e3_transfer_1/toolval
