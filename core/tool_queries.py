@@ -57,6 +57,21 @@ Responde solo con JSON:
 {{"herramientas": [{{"name": "...", "description": "Qué hace.\\n\\nArgs:\\n    arg: ..."}}]}}"""
 
 
+JUDGE_PROMPT = """\
+Un agente de datos dispone de estas herramientas:
+
+{tools}
+
+Para cada petición, indica el nombre de la ÚNICA herramienta que mejor la resuelve como
+siguiente paso. Si ninguna encaja o dos servirían igual de bien, responde "ambigua".
+
+Peticiones:
+{requests}
+
+Responde solo con JSON: {{"respuestas": ["nombre_o_ambigua", ...]}}, una por petición y en
+el mismo orden."""
+
+
 class ToolLLM:
     """Thin client for an OpenAI-compatible server that returns parsed JSON."""
 
@@ -150,6 +165,24 @@ def generate_queries(llm: ToolLLM, tools: pd.DataFrame, n: int, workers: int,
     with ThreadPoolExecutor(max_workers=workers) as pool:
         rows = [r for batch in pool.map(one, tools.itertuples()) for r in batch]
     return pd.DataFrame(rows)
+
+
+def judge(llm: ToolLLM, tools: pd.DataFrame, queries: pd.DataFrame,
+          workers: int) -> pd.Series:
+    """Round-trip check: the LLM picks the best tool for each request, one call per
+    source tool. Returns the pick per row ('' when the answer did not line up)."""
+    listing = '\n\n'.join(tools['description'])
+
+    def one(group: pd.DataFrame) -> pd.Series:
+        requests = '\n'.join(f'{i + 1}. {q}' for i, q in enumerate(group['query']))
+        picks = llm(JUDGE_PROMPT.format(tools=listing, requests=requests)).get('respuestas', [])
+        if not isinstance(picks, list) or len(picks) != len(group):
+            picks = [''] * len(group)
+        return pd.Series([str(p).strip() for p in picks], index=group.index)
+
+    groups = [g for _, g in queries.groupby('tool')]
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        return pd.concat(list(pool.map(one, groups))).reindex(queries.index)
 
 
 def generate_distractors(llm: ToolLLM, tools: pd.DataFrame, themes: dict[str, list[str]],
