@@ -1,13 +1,13 @@
 # The path where Markdown files will be read.
-data_path: ./output
+data_path: ./corpora/iieg_diverso_2023_2025/md
 
 # The path for the generated CSV/JSONL.
-output_path: ./qa_embeddings_output
+output_path: ./qa_embeddings_output/iieg_diverso_2023_2025
 
 # Model used to generate (query, answer, hard_negative) triplets via distilabel.
 # With base_url set below this is an Ollama tag; leave base_url empty and set an
 # OpenAI model id (e.g. gpt-4o-mini) to use the OpenAI API instead.
-model_name: qwen3.6:35b
+model_name: qwen3.8:latest
 
 # OpenAI-compatible endpoint. The DGX runs `ollama serve` as a node daemon on
 # port 11434, outside SLURM, so the generation job needs no GPU of its own.
