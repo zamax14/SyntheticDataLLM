@@ -1,0 +1,5 @@
+En el año 2012 se realizó el levantamiento de los caminos, carreteras y veredas en el cuadrante del Nevado de Colima. En este levantamiento solamente se registraron los caminos y carreteras con un origen y un destino, no se levantaron los caminos saca- cosechas. Caminos y carreteras, Nevado de Colima
+
+En el año 2017, se digitalizaron sobre la imagen de satélite de Google Earth, los caminos, carreteras y veredas que no estaban registrados en el levantamiento del año 2012. Caminos y carreteras, Nevado de Colima
+
+Caminos   Longitud Km   Carreteras   Longitud Km 2012         499         2012           24 2017        1,588        2017           45 2020         454         2020           28 Total       2,541                       97 Cambio Uso de Suelo Nevado de Colima Cambio Uso de Suelo en el Nevado de Colima Aquí se observa como ha sido invadida por las aguacateras el ANP El Jabalí, (zona de protección forestal y refugio de la fauna silvestre) en el municipio de Zapotitlán de Vadillo. ANP en el Nevado de Colima

@@ -1,0 +1,7 @@
+Del periodo aquí analizado, el mes con el mayor número de quejas registradas fue marzo, con 331, lo que equivale al 20.7% del total de quejas que se recibieron durante el primer semestre del año en curso. Mientras que el mes de abril, fue el que menos quejas registró con 204. (Ver gráfico 1).
+
+Las personas agraviadas de las que se tiene registro en las quejas recibidas al primer semestre de 2023 fueron un total de 2 mil 027, de las cuales 56.1% era del sexo femenino, lo que equivale a 1 mil 137 mujeres, mientras que los hombres agraviados representaron el 41.8% (847) del total de personas agraviadas; cabe mencionar que no hubo dato del sexo para 43 de los agraviados. (Ver gráfico 2).
+
+En el primer semestre de 2023, las supuestas violaciones que se mencionaron con mayor frecuencia en las quejas ante la CEDHJ fueron principalmente por prestación indebida del servicio público con 502 denuncias, de las cuales 106 se hicieron en el mes de marzo. La segunda violación más mencionada fue la del derecho a la legalidad y seguridad jurídica con 387 señalamientos y la tercera violación más mencionada en las quejas fue al derecho a la igualdad y al trato digno con 204 señalamientos (Ver tabla 1).
+
+De enero a junio del año en curso, la autoridad con el mayor número de señalamientos en las quejas registradas ante la CEDH, fue la Fiscalía del Estado con 350, seguida por la Secretaría de Educación del Estado con 274 y en tercera posición en cuanto a señalamientos, se registró la Fiscalía de Reinserción Social con 55 señalamientos. (Ver tabla 2)

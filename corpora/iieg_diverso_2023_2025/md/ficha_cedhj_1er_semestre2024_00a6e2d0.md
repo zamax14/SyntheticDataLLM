@@ -1,0 +1,11 @@
+Estadísticas de la Comisión Estatal de Derechos Humanos Jalisco, acumulado primer semestre de 2024. Una queja puede ser levantada cuando los derechos fundamentales1 de una persona han sido violentados. Durante el primer semestre del 2024, se registraron un total de 1 mil 443 quejas ante la Comisión Estatal de Derechos Humanos Jalisco (CEDHJ), 9.93% menos que las registradas en el primer semestre del 2023, que fueron 1 mil 602 quejas.
+
+Del periodo analizado, el mes de mayo fue en el que más quejas se presentaron, un total de 280, que representa el 19.4% del total de quejas recibidas durante el primer semestre del 2024. Mientras que el mes de junio, fue el mes que menos quejas registró, un total de 220. (Ver gráfico 1).
+
+De enero a junio de 2024, fueron un total de 1 mil 976 personas agraviadas en las quejas recibidas durante ese periodo. De las cuales el 58.7% fue del sexo femenino, lo que equivale a 1 mil 159 mujeres y 812 hombres que representan el 41.1% del total de personas que sufrieron algún agravio. Del total de los agraviados, no se tuvo registro del sexo en 5 de personas. (Ver gráfico 2)
+
+En el primer semestre de 2024, las supuestas violaciones que se mencionaron con mayor frecuencia en las quejas ante la CEDHJ fueron principalmente, violación al derecho a la legalidad y seguridad jurídica con 479 denuncias, de las cuales 122 se hicieron en el mes de junio. La segunda violación más mencionada fue la prestación indebida del servicio público con 409 señalamientos y la tercera más mencionada, fue la violación al derecho a la integridad y seguridad personal con 199 señalamientos (Ver tabla 1).
+
+De enero a junio del año en curso, la autoridad con el mayor número de señalamientos en las quejas registradas ante la CEDHJ, fue la Fiscalía del Estado con 373, seguida por la Secretaría de Educación del Estado con 229 y en tercera posición se señaló a la Procuraduría de la protección de niños, niñas y adolescentes con 59 señalamientos. (Ver tabla 2)
+
+Nota: El total de quejas de las autoridades más señaladas no equivale al número de quejas recibidas por mes, ya que una queja puede tener más de una autoridad y en este cuadro solo se mencionan las autoridades que más aparecen en las quejas.
