@@ -7,10 +7,9 @@
 #SBATCH --partition=dgx_large
 set -e
 
-# Usage: sbatch slurm/create_tool_dataset.sh [config] [--key value ...]
-#   smoke:  configs/smoke_tool_dataset.yaml
-#   redo one tool: configs/create_tool_dataset.yaml --only_tools "[histogram]" --near_themes "[]" \
-#                  --far_themes "[]" --seed 7 --output_path ./tool_dataset_output/<exp>_redo
+# Usage: sbatch slurm/create_tool_dataset.sh [config] [--config overrides.yaml ...]
+#   smoke:         configs/smoke_tool_dataset.yaml
+#   redo one tool: configs/create_tool_dataset.yaml --config configs/redo_tool_queries.yaml
 
 # No --gres=gpu on purpose: generation talks over HTTP to the `ollama serve`
 # daemon already running on this node, which manages its own GPU outside SLURM.
