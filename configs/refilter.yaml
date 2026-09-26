@@ -1,0 +1,5 @@
+# CSV produced by `create_embeddings`, gated with the rules of its run.
+input_csv: ./qa_embeddings_output/iieg_diverso_2023_2025/embeddings_qa.csv
+
+# Re-gated CSV and its rejects; mining reads from here.
+output_path: ./qa_embeddings_output/iieg_diverso_2023_2025/refiltered
