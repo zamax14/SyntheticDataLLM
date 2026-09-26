@@ -26,12 +26,18 @@ y para las que la MEJOR herramienta sea exactamente esta:
 
 {target}
 
+Estas otras herramientas se le parecen y NO deben servir igual de bien para tus peticiones:
+
+{siblings}
+
 Reglas:
 - Nunca menciones el nombre de la herramienta ni la cites literalmente.
-- La herramienta debe ser claramente la mejor opción frente a las demás, en especial frente
-  a estas, que son parecidas: {siblings}.
+- Cada petición debe contener la señal que distingue a la herramienta de las parecidas: si
+  pide un cálculo o una visualización, una tabla o una gráfica, coordenadas o municipios,
+  explorar la estructura o traer datos. Si otra herramienta serviría igual, descártala.
 - Mezcla peticiones explícitas ("haz una gráfica de...") con intenciones implícitas
   ("quiero ver cómo evolucionó...").
+- Escribe en español de México, sin voseo.
 - Varía los temas del IIEG: empleo formal, exportaciones, población, pobreza, seguridad,
   precios, turismo, vivienda, municipios y regiones de Jalisco.
 - Una sola oración por petición, de 8 a 30 palabras.
@@ -115,14 +121,28 @@ def clean_queries(queries: list, name: str) -> list[str]:
     return kept
 
 
-def generate_queries(llm: ToolLLM, tools: pd.DataFrame, n: int, workers: int) -> pd.DataFrame:
+def siblings(tools: pd.DataFrame, name: str, confusable: dict[str, list[str]]) -> list[str]:
+    """Tools a request for `name` could be mistaken for: its family plus the
+    declared cross-family confusions, in either direction."""
+    family = tools.loc[tools.name == name, 'family'].iloc[0]
+    found = set(tools.loc[tools.family == family, 'name'])
+    found |= set(confusable.get(name, []))
+    found |= {other for other, names in confusable.items() if name in names}
+    found.discard(name)
+    return sorted(found & set(tools['name']))
+
+
+def generate_queries(llm: ToolLLM, tools: pd.DataFrame, n: int, workers: int,
+                     confusable: dict[str, list[str]] | None = None) -> pd.DataFrame:
     """n requests per tool; one row per kept request."""
     listing = catalog(tools)
+    described = dict(zip(tools['name'], tools['description']))
 
     def one(row) -> list[dict]:
-        siblings = ', '.join(tools[(tools.family == row.family) & (tools.name != row.name)].name)
-        prompt = QUERY_PROMPT.format(catalog=listing, n=n, target=row.description,
-                                     siblings=siblings or 'ninguna')
+        near = siblings(tools, row.name, confusable or {})
+        prompt = QUERY_PROMPT.format(
+            catalog=listing, n=n, target=row.description,
+            siblings='\n\n'.join(described[s] for s in near) or 'ninguna')
         queries = clean_queries(llm(prompt).get('peticiones', []), row.name)
         return [{'query': q, 'answer': row.description, 'source_file': row.family,
                  'tool': row.name, 'kind': 'positive'} for q in queries]
@@ -180,5 +200,10 @@ if __name__ == '__main__':
     tools = pd.DataFrame({'name': ['t1'], 'family': ['f'],
                           'description': ['t1: Hace algo.\n\nArgs:\n    x: y']})
     assert catalog(tools) == '- t1: Hace algo.'
+    family = pd.DataFrame({'name': ['a', 'b', 'c', 'd'], 'family': ['f', 'f', 'g', 'h'],
+                           'description': ['a: x', 'b: x', 'c: x', 'd: x']})
+    assert siblings(family, 'a', {'c': ['a']}) == ['b', 'c']
+    assert siblings(family, 'c', {'c': ['a']}) == ['a']
+    assert siblings(family, 'd', {}) == []
     assert index_rows(tools)['query'].isna().all()
     print('tool_queries self-check OK')

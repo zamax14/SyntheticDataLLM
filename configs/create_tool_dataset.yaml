@@ -8,6 +8,18 @@ output_path: ./tool_dataset_output/e3_transfer_1
 # 24 tools x 20 = 480 requests before review; the target is >= 15 valid per tool.
 queries_per_tool: 20
 
+# Tools of another family that a request could be mistaken for (the tool's own
+# family is always included). Their full description goes into the prompt so
+# each request carries the cue that tells them apart.
+confusable_tools:
+  heatmap: [heat_map, correlation_heatmap]
+  heat_map: [choropleth_map]
+  correlation_heatmap: [correlation_matrix]
+  histogram: [frequency_distribution]
+  summary_table: [descriptive_stats]
+  to_markdown_table: [summary_table]
+  aggregate: [execute_query]
+
 # Distractor tools only sit in the index, so filtering is a real retrieval
 # problem: with the 24 tools alone the whole list fits in an LLM prompt.
 distractors_per_theme: 10
