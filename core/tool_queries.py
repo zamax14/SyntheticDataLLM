@@ -10,6 +10,7 @@
 
 import json
 import re
+import unicodedata
 
 from concurrent.futures import ThreadPoolExecutor
 
@@ -70,6 +71,23 @@ Peticiones:
 
 Responde solo con JSON: {{"respuestas": ["nombre_o_ambigua", ...]}}, una por petición y en
 el mismo orden."""
+
+
+RESTYLE_PROMPT = """\
+Estos son los docstrings reales de las herramientas de un agente. Fíjate en su estilo: una
+primera línea corta (5 a 12 palabras) con un verbo en tercera persona, sin adjetivos de
+relleno, y una sección Args con descripciones de 2 a 6 palabras:
+
+{examples}
+
+Reescribe las siguientes herramientas EXACTAMENTE en ese estilo. Conserva el nombre, lo que
+hace cada una y sus argumentos (puedes quitar los que sobren, deja como máximo 5); solo cambia
+la redacción para que sea igual de escueta.
+
+{targets}
+
+Responde solo con JSON:
+{{"herramientas": [{{"name": "...", "description": "Primera linea.\\n\\nArgs:\\n    arg: ..."}}]}}"""
 
 
 class ToolLLM:
@@ -185,6 +203,40 @@ def judge(llm: ToolLLM, tools: pd.DataFrame, queries: pd.DataFrame,
         return pd.concat(list(pool.map(one, groups))).reindex(queries.index)
 
 
+def ascii_fold(text: str) -> str:
+    """Drop accents and opening marks: the agent's docstrings are plain ASCII."""
+    text = text.replace('¿', '').replace('¡', '')
+    return unicodedata.normalize('NFKD', text).encode('ascii', 'ignore').decode('ascii')
+
+
+def first_line_words(description: str) -> int:
+    """Words in the first line after 'name:'."""
+    body = description.split(':', 1)[1].strip() if ':' in description else description
+    return len(body.splitlines()[0].split()) if body else 0
+
+
+def restyle(llm: ToolLLM, tools: pd.DataFrame, distractors: pd.DataFrame, batch: int,
+            workers: int) -> pd.Series:
+    """Rewrite distractor descriptions in the agent's docstring style, so the index
+    competes on function and not on wording. Returns 'name: description' per row,
+    or '' when the model dropped a tool."""
+    examples = '\n\n'.join(tools['description'])
+    chunks = [distractors.iloc[i:i + batch] for i in range(0, len(distractors), batch)]
+
+    def one(chunk: pd.DataFrame) -> pd.Series:
+        out = llm(RESTYLE_PROMPT.format(examples=examples,
+                                        targets='\n\n'.join(chunk['answer'])))
+        by_name = {str(t.get('name', '')).strip(): str(t.get('description', '')).strip()
+                   for t in out.get('herramientas', []) if isinstance(t, dict)}
+        return pd.Series(
+            [f'{n}: {ascii_fold(by_name[n])}' if by_name.get(n) else '' for n in chunk['tool']],
+            index=chunk.index,
+        )
+
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        return pd.concat(list(pool.map(one, chunks))).reindex(distractors.index)
+
+
 def generate_distractors(llm: ToolLLM, tools: pd.DataFrame, themes: dict[str, list[str]],
                          per_theme: int, workers: int) -> pd.DataFrame:
     """Distractor tools per theme; names never collide with the agent's or each other."""
@@ -239,4 +291,7 @@ if __name__ == '__main__':
     assert siblings(family, 'c', {'c': ['a']}) == ['a']
     assert siblings(family, 'd', {}) == []
     assert index_rows(tools)['query'].isna().all()
+    assert ascii_fold('¿Añade gráficas?') == 'Anade graficas?'
+    assert first_line_words('t: Genera un heatmap con Plotly.\n\nArgs:\n    x: y') == 5
+    assert first_line_words('t:') == 0
     print('tool_queries self-check OK')
