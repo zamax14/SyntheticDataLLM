@@ -1,0 +1,5 @@
+# The restyled set of e3_transfer_2 (rows with valida = n are dropped).
+input_csv: ./tool_dataset_output/e3_transfer_2/tool_dataset.csv
+
+# Copy toolval/ragval_dataset.csv to Tesis-RAG/dataset/toolval_dataset.csv.
+output_path: ./tool_dataset_output/e3_transfer_2/toolval
