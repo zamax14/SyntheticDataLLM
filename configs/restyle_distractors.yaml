@@ -1,0 +1,17 @@
+# e3_transfer_2: the reviewed set of e3_transfer_1 with its distractors rewritten
+# in the agent's docstring style. In e3_transfer_1 the distractors, written by the
+# same LLM as the requests, won most errors on wording alone.
+input_csv: ../Tesis-RAG/dataset/toolval_reviewed.csv
+tools_csv: ../Tesis-Agent/data/tools.csv
+output_path: ./tool_dataset_output/e3_transfer_2
+batch_size: 10
+
+# Same server and flags as create_tool_dataset; low temperature, it is a rewrite.
+model_name: qwen3.8:latest
+base_url: http://localhost:11434/v1
+api_key: ollama
+disable_thinking: true
+temperature: 0.2
+max_new_tokens: 4096
+seed: 42
+workers: 8
