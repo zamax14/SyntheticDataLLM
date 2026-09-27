@@ -251,6 +251,73 @@ class SyntheticData:
         if missing:
             Logger.warning(f'🟡 Tools without requests: {sorted(missing)}')
 
+    def restyle_distractors(
+        self,
+        input_csv: str,
+        tools_csv: str,
+        output_path: str,
+        batch_size: int = 10,
+        model_name: str = 'gpt-4o-mini',
+        base_url: str | None = None,
+        api_key: str | None = None,
+        disable_thinking: bool = False,
+        temperature: float = 0.2,
+        max_new_tokens: int = 4096,
+        seed: int | None = 42,
+        workers: int = 8
+    ) -> None:
+        """
+        Rewrite the kept distractor tools of a reviewed tool dataset in the
+        agent's docstring style (short first line, short Args, plain ASCII),
+        so the index compares function and not wording. The original text is
+        kept in `answer_original`; requests and agent tools are untouched.
+
+        Args:
+            input_csv (str): Reviewed tool_dataset.csv (with the `valida` column).
+            tools_csv (str): Tesis-Agent's data/tools.csv, the style reference.
+            output_path (str): Directory where the restyled tool_dataset.csv goes.
+            batch_size (int): Distractors rewritten per call.
+            model_name (str): Model id (OpenAI id, or the Ollama tag).
+            base_url (str): OpenAI-compatible endpoint.
+            api_key (str): API key for that endpoint.
+            disable_thinking (bool): Required for Ollama reasoning models.
+            temperature (float): Sampling temperature (low: this is a rewrite).
+            max_new_tokens (int): Output budget per call.
+            seed (int): Sampling seed, for reproducibility.
+            workers (int): Concurrent calls to the server.
+        """
+        Logger.info('🚀 Restyling distractor tools ...')
+        from core import tool_queries
+        df = pd.read_csv(input_csv, keep_default_na=False)
+        tools = read_csv(tools_csv)
+        llm = tool_queries.ToolLLM(model_name, base_url, api_key, disable_thinking,
+                                   temperature, max_new_tokens, seed)
+
+        target = df['kind'].str.startswith('distractor') & (df['valida'].str.lower() != 'n')
+        rewritten = tool_queries.restyle(llm, tools, df[target], batch_size, workers)
+        failed = rewritten.eq('')
+        if failed.any():
+            Logger.warning(f'🟡 {failed.sum()} distractors came back empty, kept as they were: '
+                           f'{sorted(df.loc[failed[failed].index, "tool"])}')
+        df['answer_original'] = ''
+        done = rewritten[~failed].index
+        df.loc[done, 'answer_original'] = df.loc[done, 'answer']
+        df.loc[done, 'answer'] = rewritten[~failed]
+
+        words = df['answer'].map(tool_queries.first_line_words)
+        agent = tools['description'].map(tool_queries.first_line_words)
+        restyled = words[target]
+        Logger.info(
+            f'First-line words, median [max]: agent {agent.median():.0f} [{agent.max()}], '
+            f'distractors {restyled.median():.0f} [{restyled.max()}]; '
+            f'{(restyled > agent.max()).sum()} distractors longer than any agent tool; '
+            f'non-ASCII chars left: {df.loc[target, "answer"].map(lambda t: sum(ord(c) > 127 for c in t)).sum()}'
+        )
+        os.makedirs(output_path, exist_ok=True)
+        out_file = os.path.join(output_path, 'tool_dataset.csv')
+        df.to_csv(out_file, index=False)
+        Logger.info(f'🟢 {len(done)} of {target.sum()} distractors restyled -> {out_file}')
+
     def export_ragval(
         self,
         input_csv: str,
