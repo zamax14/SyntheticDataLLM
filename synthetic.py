@@ -153,6 +153,9 @@ class SyntheticData:
             max_new_tokens=max_new_tokens, input_batch_size=input_batch_size,
             base_url=base_url, api_key=api_key, disable_thinking=disable_thinking
         )
+        if not rows:
+            raise RuntimeError(f'{model_name} returned no parsable query: check '
+                               'disable_thinking and max_new_tokens')
         kept, rejected = quality_gate.apply(pd.DataFrame(rows))
         Logger.info(quality_gate.report(kept, rejected))
         os.makedirs(output_path, exist_ok=True)
