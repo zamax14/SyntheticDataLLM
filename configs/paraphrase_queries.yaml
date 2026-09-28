@@ -1,0 +1,19 @@
+# lex_control_1: lexical control. The quality gate requires lexical anchoring,
+# so test questions share ~81 % of their content words with the passage and 65 %
+# copy a figure: BM25 matches or beats every embedding in E1/E2. Each test
+# question is rewritten without the passage's wording (same generator as the
+# training data, qwen3.8, to isolate the lexical effect from the generator one)
+# and kept if the passage still answers it and coverage <= max_coverage.
+input_csv: ../Tesis-Embeddings/datasets/test.csv
+ragval_csv: ../Tesis-RAG/dataset/ragval_dataset.csv
+output_path: ./control_output/lex_control_1
+max_coverage: 0.5
+
+model_name: qwen3.8:latest
+base_url: http://localhost:11434/v1
+api_key: ollama
+disable_thinking: true
+temperature: 0.7
+max_new_tokens: 1024
+seed: 42
+workers: 8
