@@ -1,0 +1,10 @@
+# e3_train_1: TRAINING requests for the 24 agent tools, on top of
+# create_tool_dataset.yaml. Same generator as the E3 test set (qwen3.8) but
+# another seed; near-duplicates of the test requests are dropped afterwards.
+# No manual review: only the rows where the round-trip judge agrees are kept.
+#   sbatch slurm/create_tool_dataset.sh configs/create_tool_dataset.yaml --config configs/train_tool_queries.yaml
+queries_per_tool: 50
+near_themes: []
+far_themes: []
+seed: 123
+output_path: ./tool_dataset_output/e3_train_1
