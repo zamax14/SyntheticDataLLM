@@ -1,0 +1,8 @@
+# gen_control_1, E3 side: new requests for the 24 agent tools written by gemma4,
+# on top of create_tool_dataset.yaml. No distractors (the index reuses the
+# restyled ones of e3_transfer_2); the judge is gemma4 itself.
+#   sbatch slurm/create_tool_dataset.sh configs/create_tool_dataset.yaml --config configs/control_tool_queries.yaml
+model_name: gemma4:31b
+near_themes: []
+far_themes: []
+output_path: ./control_output/gen_control_1_tools
