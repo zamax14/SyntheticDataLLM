@@ -7,7 +7,8 @@
 #SBATCH --partition=dgx_large
 set -e
 
-# Usage: sbatch slurm/create_control_queries.sh [--input_csv=... --output_path=...]
+# Usage: sbatch slurm/create_control_queries.sh [--config overrides.yaml]
+#   smoke: --config configs/smoke_control_queries.yaml
 
 # No --gres=gpu on purpose: generation talks over HTTP to the `ollama serve`
 # daemon already running on this node, which manages its own GPU outside SLURM.

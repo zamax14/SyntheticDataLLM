@@ -1,0 +1,5 @@
+# Smoke test of the generator-bias control, on top of control_queries.yaml:
+#   sbatch slurm/create_control_queries.sh --config configs/smoke_control_queries.yaml
+# control_output/smoke5.csv holds the first 5 rows of test.csv.
+input_csv: ./control_output/smoke5.csv
+output_path: ./control_output/smoke
