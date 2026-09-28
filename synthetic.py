@@ -111,6 +111,72 @@ class SyntheticData:
             )
         Logger.info(f'🟢 Generated {len(df)} triplets -> {output_path}')
 
+    def create_control_queries(
+        self,
+        input_csv: str,
+        output_path: str,
+        ragval_csv: str | None = None,
+        model_name: str = 'gpt-4o-mini',
+        context: str | None = None,
+        max_new_tokens: int = 512,
+        input_batch_size: int = 50,
+        base_url: str | None = None,
+        api_key: str | None = None,
+        disable_thinking: bool = False
+    ) -> None:
+        """
+        Generator-bias control: new queries for the SAME test passages, written
+        by another LLM with the same pipeline and quality gate. If a fine-tuned
+        model's gain vanishes on them, it learned the training generator's
+        style, not the domain.
+
+        Args:
+            input_csv (str): Test partition (answer and source_file columns).
+            output_path (str): Directory for control_test.csv (E1) and, with
+                               ragval_csv, ragval_control.csv (E2).
+            ragval_csv (str): Tesis-RAG ragval_dataset.csv; every one of its
+                              chunks stays in the E2 index as index-only rows.
+            model_name (str): The other generator (Ollama tag or OpenAI id).
+            context (str): Domain context; defaults to the pipeline's.
+            max_new_tokens (int): Output budget per generation.
+            input_batch_size (int): Anchors dispatched concurrently.
+            base_url (str): OpenAI-compatible endpoint.
+            api_key (str): API key for that endpoint.
+            disable_thinking (bool): Required for Ollama reasoning models.
+        """
+        Logger.info(f'🚀 Generating control queries with {model_name} ...')
+        from core.embeddings_pipeline import DEFAULT_CONTEXT_ES, generate_triplets
+        test = read_csv(input_csv).drop_duplicates('answer')
+        rows = generate_triplets(
+            anchors=test['answer'].tolist(), sources=test['source_file'].tolist(),
+            model_name=model_name, context=context or DEFAULT_CONTEXT_ES,
+            max_new_tokens=max_new_tokens, input_batch_size=input_batch_size,
+            base_url=base_url, api_key=api_key, disable_thinking=disable_thinking
+        )
+        kept, rejected = quality_gate.apply(pd.DataFrame(rows))
+        Logger.info(quality_gate.report(kept, rejected))
+        os.makedirs(output_path, exist_ok=True)
+        kept[['query', 'answer', 'source_file']].to_csv(
+            os.path.join(output_path, 'control_test.csv'), index=False)
+        Logger.info(f'🟢 {len(kept)} control queries for {kept.answer.nunique()} '
+                    f'of {len(test)} test passages')
+
+        if ragval_csv:
+            chunk_id = lambda c: hashlib.sha256(str(c).encode()).hexdigest()[:12]
+            index = read_csv(ragval_csv).drop_duplicates('chunk_id')
+            control = pd.DataFrame({
+                'pregunta': kept['query'], 'chunk_id': kept['answer'].map(chunk_id),
+                'chunk_content': kept['answer'], 'documento': kept['source_file'],
+            })
+            missing = set(control.chunk_id) - set(index.chunk_id)
+            assert not missing, f'{len(missing)} test passages are not ragval chunks'
+            out = pd.concat([control, index[['chunk_id', 'chunk_content', 'documento']]
+                             .assign(pregunta=None)], ignore_index=True)
+            out.insert(0, 'id', range(1, len(out) + 1))
+            out.to_csv(os.path.join(output_path, 'ragval_control.csv'), index=False)
+            Logger.info(f'🟢 E2 control: {len(control)} questions over '
+                        f'{out.chunk_id.nunique()} indexed chunks')
+
     def refilter(self, input_csv: str, output_path: str) -> None:
         """
         Re-apply the anchor cleaning and the quality gate to an already
