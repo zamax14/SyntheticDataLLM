@@ -1,0 +1,20 @@
+# e3_train_1: training pairs request -> agent tool, from the generation of
+# configs/train_tool_queries.yaml. Judge-approved rows only, no request closer than
+# max_test_similarity to the E3 test set, sibling tool as hard negative.
+input_csv: ./tool_dataset_output/e3_train_1/tool_dataset.csv
+test_csv: ../Tesis-RAG/dataset/toolval_dataset.csv
+tools_csv: ../Tesis-Agent/data/tools.csv
+output_path: ./tool_dataset_output/e3_train_1/pairs
+max_test_similarity: 0.8
+val_fraction: 0.1
+seed: 42
+
+# Same confusions as the generation (create_tool_dataset.yaml).
+confusable_tools:
+  heatmap: [heat_map, correlation_heatmap]
+  heat_map: [choropleth_map]
+  correlation_heatmap: [correlation_matrix]
+  histogram: [frequency_distribution]
+  summary_table: [descriptive_stats]
+  to_markdown_table: [summary_table]
+  aggregate: [execute_query]
