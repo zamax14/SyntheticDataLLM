@@ -20,6 +20,7 @@ output/
 cuadernillos-y-demas/
 qa_embeddings_output/
 tool_dataset_output/
+control_output/
 slurm/logs/
 corpora/**/page_*.html
 !corpora/iieg_diverso_2023_2025/md/*.md
