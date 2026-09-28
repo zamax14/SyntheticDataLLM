@@ -20,6 +20,30 @@ from utils.logger import Logger
 from utils.utils import read_data, read_csv, MarkDowndExtension
 
 
+def _write_control(kept: pd.DataFrame, output_path: str, ragval_csv: str | None) -> None:
+    """control_test.csv for E1 and, with ragval_csv, ragval_control.csv for E2: the
+    control questions plus every ragval chunk as an index-only row."""
+    os.makedirs(output_path, exist_ok=True)
+    kept[['query', 'answer', 'source_file']].to_csv(
+        os.path.join(output_path, 'control_test.csv'), index=False)
+    Logger.info(f'🟢 {len(kept)} control queries for {kept.answer.nunique()} test passages')
+    if not ragval_csv:
+        return
+    chunk_id = lambda c: hashlib.sha256(str(c).encode()).hexdigest()[:12]
+    index = read_csv(ragval_csv).drop_duplicates('chunk_id')
+    control = pd.DataFrame({
+        'pregunta': kept['query'], 'chunk_id': kept['answer'].map(chunk_id),
+        'chunk_content': kept['answer'], 'documento': kept['source_file'],
+    })
+    missing = set(control.chunk_id) - set(index.chunk_id)
+    assert not missing, f'{len(missing)} test passages are not ragval chunks'
+    out = pd.concat([control, index[['chunk_id', 'chunk_content', 'documento']]
+                     .assign(pregunta=None)], ignore_index=True)
+    out.insert(0, 'id', range(1, len(out) + 1))
+    out.to_csv(os.path.join(output_path, 'ragval_control.csv'), index=False)
+    Logger.info(f'🟢 E2 control: {len(control)} questions over {out.chunk_id.nunique()} indexed chunks')
+
+
 @dataclass
 class SyntheticData:
     """Class for handling synthetic data operations."""
@@ -158,27 +182,61 @@ class SyntheticData:
                                'disable_thinking and max_new_tokens')
         kept, rejected = quality_gate.apply(pd.DataFrame(rows))
         Logger.info(quality_gate.report(kept, rejected))
-        os.makedirs(output_path, exist_ok=True)
-        kept[['query', 'answer', 'source_file']].to_csv(
-            os.path.join(output_path, 'control_test.csv'), index=False)
-        Logger.info(f'🟢 {len(kept)} control queries for {kept.answer.nunique()} '
-                    f'of {len(test)} test passages')
+        _write_control(kept, output_path, ragval_csv)
 
-        if ragval_csv:
-            chunk_id = lambda c: hashlib.sha256(str(c).encode()).hexdigest()[:12]
-            index = read_csv(ragval_csv).drop_duplicates('chunk_id')
-            control = pd.DataFrame({
-                'pregunta': kept['query'], 'chunk_id': kept['answer'].map(chunk_id),
-                'chunk_content': kept['answer'], 'documento': kept['source_file'],
-            })
-            missing = set(control.chunk_id) - set(index.chunk_id)
-            assert not missing, f'{len(missing)} test passages are not ragval chunks'
-            out = pd.concat([control, index[['chunk_id', 'chunk_content', 'documento']]
-                             .assign(pregunta=None)], ignore_index=True)
-            out.insert(0, 'id', range(1, len(out) + 1))
-            out.to_csv(os.path.join(output_path, 'ragval_control.csv'), index=False)
-            Logger.info(f'🟢 E2 control: {len(control)} questions over '
-                        f'{out.chunk_id.nunique()} indexed chunks')
+    def create_paraphrase_queries(
+        self,
+        input_csv: str,
+        output_path: str,
+        ragval_csv: str | None = None,
+        max_coverage: float = 0.5,
+        model_name: str = 'gpt-4o-mini',
+        base_url: str | None = None,
+        api_key: str | None = None,
+        disable_thinking: bool = False,
+        temperature: float = 0.7,
+        max_new_tokens: int = 1024,
+        seed: int | None = 42,
+        workers: int = 8
+    ) -> None:
+        """
+        Lexical control: each test question rewritten without the passage's
+        wording, kept only if an answerability judge still says the passage
+        answers it and at most `max_coverage` of its content words appear in
+        the passage. Writes the same files as create_control_queries plus
+        paraphrases.csv with every attempt.
+
+        Args:
+            input_csv (str): Test partition (query, answer, source_file).
+            output_path (str): Directory for the outputs.
+            ragval_csv (str): Tesis-RAG ragval_dataset.csv, for the E2 index.
+            max_coverage (float): Max share of content words shared with the passage.
+            model_name (str): Model id (OpenAI id, or the Ollama tag).
+            base_url (str): OpenAI-compatible endpoint.
+            api_key (str): API key for that endpoint.
+            disable_thinking (bool): Required for Ollama reasoning models.
+            temperature (float): Sampling temperature.
+            max_new_tokens (int): Output budget per call.
+            seed (int): Sampling seed, for reproducibility.
+            workers (int): Concurrent calls to the server.
+        """
+        Logger.info(f'🚀 Paraphrasing test questions with {model_name} ...')
+        from core import paraphrase as para
+        from core.tool_queries import ToolLLM
+        test = read_csv(input_csv).drop_duplicates('answer').reset_index(drop=True)
+        llm = ToolLLM(model_name, base_url, api_key, disable_thinking, temperature,
+                      max_new_tokens, seed)
+        df = para.paraphrase(llm, test, workers)
+        os.makedirs(output_path, exist_ok=True)
+        df.to_csv(os.path.join(output_path, 'paraphrases.csv'), index=False)
+        keep = df['answerable'] & (df['coverage_paraphrase'] <= max_coverage)
+        Logger.info(
+            f'Coverage (share of question words in the passage), mean: original '
+            f'{df.coverage_original.mean():.2f}, paraphrase {df.coverage_paraphrase.mean():.2f}; '
+            f'answerable {df.answerable.mean():.0%}; kept {keep.sum()} of {len(df)} '
+            f'(coverage <= {max_coverage})'
+        )
+        _write_control(df[keep].assign(query=df.loc[keep, 'paraphrase']), output_path, ragval_csv)
 
     def refilter(self, input_csv: str, output_path: str) -> None:
         """
