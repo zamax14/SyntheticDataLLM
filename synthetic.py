@@ -238,6 +238,76 @@ class SyntheticData:
         )
         _write_control(df[keep].assign(query=df.loc[keep, 'paraphrase']), output_path, ragval_csv)
 
+    def build_tool_training(
+        self,
+        input_csv: str,
+        test_csv: str,
+        tools_csv: str,
+        output_path: str,
+        confusable_tools: dict[str, list[str]] | None = None,
+        max_test_similarity: float = 0.8,
+        val_fraction: float = 0.1,
+        seed: int = 42
+    ) -> None:
+        """
+        Training pairs (request -> agent tool) for E3 fine-tuning, from a
+        create_tool_dataset output. Keeps only the rows where the round-trip
+        judge agrees, drops requests too close to any test request (TF-IDF
+        cosine >= max_test_similarity) and near-duplicates among themselves,
+        splits train/val per tool, and adds a sibling tool (same family or
+        declared confusion) as hard negative.
+
+        Args:
+            input_csv (str): tool_dataset.csv with query, tool, juez columns.
+            test_csv (str): Tesis-RAG toolval_dataset.csv (its questions are the test).
+            tools_csv (str): Tesis-Agent's data/tools.csv (name, family, description).
+            output_path (str): Directory for train.csv and val.csv.
+            confusable_tools (dict): Cross-family confusions, as in create_tool_dataset.
+            max_test_similarity (float): TF-IDF cosine above which a request is dropped.
+            val_fraction (float): Share of each tool's requests held out for validation.
+            seed (int): Seed for the split and the negative choice.
+        """
+        Logger.info('🚀 Building the tool training pairs ...')
+        import random
+        from sklearn.feature_extraction.text import TfidfVectorizer
+        from sklearn.metrics.pairwise import cosine_similarity
+        from core.tool_queries import siblings
+
+        df = read_csv(input_csv)
+        tools = read_csv(tools_csv)
+        described = dict(zip(tools['name'], tools['description']))
+        q = df[(df['kind'] == 'positive') & (df['juez'] == df['tool'])].drop_duplicates('query')
+        test = read_csv(test_csv)['pregunta'].dropna().tolist()
+
+        vec = TfidfVectorizer(ngram_range=(1, 2), sublinear_tf=True).fit(test + q['query'].tolist())
+        to_test = cosine_similarity(vec.transform(q['query']), vec.transform(test)).max(axis=1)
+        q = q[to_test < max_test_similarity].reset_index(drop=True)
+        within = cosine_similarity(vec.transform(q['query']))
+        keep = [i for i in range(len(q)) if not (within[i, :i] >= max_test_similarity).any()]
+        q = q.iloc[keep].reset_index(drop=True)
+
+        rng = random.Random(seed)
+        rows = []
+        for tool, group in q.groupby('tool'):
+            group = group.sample(frac=1, random_state=seed)
+            n_val = max(1, round(len(group) * val_fraction))
+            near = siblings(tools, tool, confusable_tools or {}) or [n for n in described if n != tool]
+            for i, query in enumerate(group['query']):
+                rows.append({'query': query, 'answer': described[tool],
+                             'hard_negative_mined': described[rng.choice(near)],
+                             'source_file': tool, 'split': 'val' if i < n_val else 'train'})
+        pairs = pd.DataFrame(rows)
+        os.makedirs(output_path, exist_ok=True)
+        for split in ('train', 'val'):
+            pairs[pairs['split'] == split].drop(columns='split').to_csv(
+                os.path.join(output_path, f'{split}.csv'), index=False)
+        Logger.info(
+            f'🟢 {len(pairs)} pairs over {pairs.source_file.nunique()} tools '
+            f'(judge-approved {len(df[(df.kind == "positive") & (df.juez == df.tool)])}, '
+            f'{(to_test >= max_test_similarity).sum()} too close to test): '
+            f'{(pairs.split == "train").sum()} train / {(pairs.split == "val").sum()} val -> {output_path}'
+        )
+
     def refilter(self, input_csv: str, output_path: str) -> None:
         """
         Re-apply the anchor cleaning and the quality gate to an already
