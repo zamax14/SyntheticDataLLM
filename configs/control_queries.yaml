@@ -1,0 +1,14 @@
+# gen_control_1: generator-bias control. The same 309 test passages, new queries
+# written by ANOTHER LLM family (gemma4) with the same pipeline and gate. The
+# training queries all came from qwen3.8.
+input_csv: ../Tesis-Embeddings/datasets/test.csv
+ragval_csv: ../Tesis-RAG/dataset/ragval_dataset.csv
+output_path: ./control_output/gen_control_1
+
+model_name: gemma4:31b
+base_url: http://localhost:11434/v1
+api_key: ollama
+# gemma4 is not a reasoning model; the smoke test checks the answers are not empty.
+disable_thinking: false
+max_new_tokens: 512
+input_batch_size: 50
