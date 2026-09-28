@@ -8,7 +8,8 @@ output_path: ./control_output/gen_control_1
 model_name: gemma4:31b
 base_url: http://localhost:11434/v1
 api_key: ollama
-# gemma4 is not a reasoning model; the smoke test checks the answers are not empty.
-disable_thinking: false
+# gemma4 has the Ollama 'thinking' capability: without this every answer comes
+# back empty (same trap as qwen3.6).
+disable_thinking: true
 max_new_tokens: 512
 input_batch_size: 50
