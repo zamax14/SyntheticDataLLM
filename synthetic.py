@@ -238,6 +238,46 @@ class SyntheticData:
         )
         _write_control(df[keep].assign(query=df.loc[keep, 'paraphrase']), output_path, ragval_csv)
 
+    def rejudge_tools(
+        self,
+        input_csv: str,
+        tools_csv: str,
+        model_name: str = 'gpt-4o-mini',
+        base_url: str | None = None,
+        api_key: str | None = None,
+        disable_thinking: bool = False,
+        temperature: float = 0.8,
+        max_new_tokens: int = 4096,
+        seed: int | None = 42,
+        workers: int = 8
+    ) -> None:
+        """
+        Re-run the round-trip judge over an existing tool_dataset.csv, in place
+        (juez and revisar columns), without regenerating the requests.
+
+        Args:
+            input_csv (str): tool_dataset.csv from create_tool_dataset.
+            tools_csv (str): Tesis-Agent's data/tools.csv.
+            model_name (str): Model id (OpenAI id, or the Ollama tag).
+            base_url (str): OpenAI-compatible endpoint.
+            api_key (str): API key for that endpoint.
+            disable_thinking (bool): Required for Ollama reasoning models.
+            temperature (float): Sampling temperature.
+            max_new_tokens (int): Output budget per call.
+            seed (int): Sampling seed.
+            workers (int): Concurrent calls to the server.
+        """
+        from core import tool_queries
+        df = pd.read_csv(input_csv, keep_default_na=False)
+        llm = tool_queries.ToolLLM(model_name, base_url, api_key, disable_thinking,
+                                   temperature, max_new_tokens, seed)
+        pos = df['kind'] == 'positive'
+        df.loc[pos, 'juez'] = tool_queries.judge(llm, read_csv(tools_csv), df[pos], workers)
+        df.loc[pos, 'revisar'] = (df.loc[pos, 'juez'] != df.loc[pos, 'tool']).map({True: 'si', False: ''})
+        df.to_csv(input_csv, index=False)
+        Logger.info(f'🟢 Judge disagrees on {(df.loc[pos, "revisar"] == "si").sum()} of {pos.sum()} '
+                    f'requests ({(df.loc[pos, "juez"] == "").sum()} unanswered) -> {input_csv}')
+
     def build_tool_training(
         self,
         input_csv: str,

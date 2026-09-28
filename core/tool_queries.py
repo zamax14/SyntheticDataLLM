@@ -186,9 +186,11 @@ def generate_queries(llm: ToolLLM, tools: pd.DataFrame, n: int, workers: int,
 
 
 def judge(llm: ToolLLM, tools: pd.DataFrame, queries: pd.DataFrame,
-          workers: int) -> pd.Series:
-    """Round-trip check: the LLM picks the best tool for each request, one call per
-    source tool. Returns the pick per row ('' when the answer did not line up)."""
+          workers: int, batch: int = 20) -> pd.Series:
+    """Round-trip check: the LLM picks the best tool for each request, in batches
+    of `batch` requests of one source tool (with 50 per call the answer list
+    stopped lining up and whole tools came back unjudged). Returns the pick per
+    row ('' when the answer did not line up)."""
     listing = '\n\n'.join(tools['description'])
 
     def one(group: pd.DataFrame) -> pd.Series:
@@ -198,7 +200,7 @@ def judge(llm: ToolLLM, tools: pd.DataFrame, queries: pd.DataFrame,
             picks = [''] * len(group)
         return pd.Series([str(p).strip() for p in picks], index=group.index)
 
-    groups = [g for _, g in queries.groupby('tool')]
+    groups = [g.iloc[i:i + batch] for _, g in queries.groupby('tool') for i in range(0, len(g), batch)]
     with ThreadPoolExecutor(max_workers=workers) as pool:
         return pd.concat(list(pool.map(one, groups))).reindex(queries.index)
 
