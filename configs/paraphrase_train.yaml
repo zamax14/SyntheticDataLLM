@@ -1,0 +1,10 @@
+# lex_train_1: the TRAINING questions paraphrased the same way as the lexical
+# control, on top of configs/paraphrase_queries.yaml:
+#   sbatch slurm/create_paraphrase_queries.sh --config configs/paraphrase_train.yaml
+# On paraphrased test questions the fine-tuning gain shrinks (E1 +0.006, E2 +0.042)
+# while BM25 collapses: training on questions that copy the passage may teach
+# part of that lexical shortcut. paraphrases.csv keeps every original column
+# (hard_negative_mined included) to build the paraphrase / mixed training sets.
+input_csv: ../Tesis-Embeddings/datasets/train.csv
+ragval_csv: null
+output_path: ./control_output/lex_train_1
