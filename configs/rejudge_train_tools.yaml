@@ -1,0 +1,13 @@
+# e3_train_1: re-run the round-trip judge in batches of 20. The first pass sent
+# 50 requests per call and the answer list stopped lining up: 17 of 24 tools
+# came back unjudged (803 of 1090 requests).
+input_csv: ./tool_dataset_output/e3_train_1/tool_dataset.csv
+tools_csv: ../Tesis-Agent/data/tools.csv
+model_name: qwen3.8:latest
+base_url: http://localhost:11434/v1
+api_key: ollama
+disable_thinking: true
+temperature: 0.2
+max_new_tokens: 4096
+seed: 42
+workers: 8
