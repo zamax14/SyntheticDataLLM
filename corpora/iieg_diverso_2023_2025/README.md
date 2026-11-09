@@ -1,26 +1,46 @@
-# Corpus diverso del IIEG (2023–2025)
+# IIEG diverse corpus (2023–2025)
 
-Corpus local para una **futura** regeneración del conjunto de entrenamiento de la tesis. La recolección se amplió el 25 de septiembre de 2026 porque la muestra inicial de 20 documentos era insuficiente. Contiene **138 PDF con texto útil** y 138 archivos de texto, publicados en rutas del IIEG de 2023 a 2025: 75 de economía, 36 de gobierno y seguridad, 16 de sociedad, 7 de geografía y ambiente y 4 cuadernillos municipales. La muestra municipal usa Guadalajara, Puerto Vallarta, Mezquitic y Lagos de Moreno; no incorpora los 124 cuadernillos anteriores. La distribución temática sigue desbalanceada porque varias publicaciones ambientales son mapas sin texto extraíble.
+Source corpus of the thesis training and evaluation data. It holds **138 PDF publications with
+usable text** from the IIEG (Instituto de Información Estadística y Geográfica de Jalisco), published
+between 2023 and 2025: 75 on economy, 36 on government and security, 16 on society, 7 on geography
+and environment, and 4 municipal booklets (Guadalajara, Puerto Vallarta, Mezquitic, Lagos de
+Moreno). The topic distribution is unbalanced because several environmental publications are maps
+without extractable text.
 
-## Archivos
+## Files
 
-- `manifest.csv`: página oficial de publicación, URL del PDF, título, mes indicado por la ruta de publicación, tema, serie, SHA-256, páginas y pasajes conservados. `source_group` identifica la página de catálogo; los cuatro cuadernillos comparten grupo propio.
-- `md/*.md`: texto extraído con `pdftotext -layout` y dividido en bloques de al menos 200 caracteres y 30 palabras. Son los archivos listos para la entrada `data_path` de `synthetic.py`.
-- `similarity.csv`: pasajes retirados por coincidencia normalizada exacta o similitud textual de al menos 0.94, con referencia al documento conservado. El SHA-256 corresponde al pasaje retirado.
-- `skipped.csv`: publicaciones descubiertas que no llegaron al corpus por falta de texto, tamaño de descarga o porque todo su texto útil repetía otros documentos.
-- `pdf/*.pdf`: copias locales de los originales y caché de descartes. Son datos ignorados por Git; solo los PDF del manifiesto pertenecen al corpus de entrenamiento.
+- `manifest.csv`: official publication page, PDF URL, title, month taken from the publication path,
+  topic, series, SHA-256, pages and kept passages. `source_group` identifies the catalogue page; the
+  four booklets share their own group.
+- `md/*.md`: text extracted with `pdftotext -layout` and split into blocks of at least 200
+  characters and 30 words. These are the files read by `data_path` in `configs/create_embeddings.yaml`.
+- `similarity.csv`: passages removed as exact normalized matches or with textual similarity ≥ 0.94,
+  with a reference to the kept document. The SHA-256 is that of the removed passage.
+- `skipped.csv`: publications found but left out (no text, download size, or all their useful text
+  repeated other documents).
+- `pdf/*.pdf`: local copies of the originals (ignored by git).
 
-Los 138 documentos suman 4,888 páginas. Se examinaron 6,446 pasajes de 141 PDF con texto candidato y se conservaron **4,640** en 138 documentos; se retiraron 474 coincidencias exactas (433 entre documentos y 41 internas) y 1,332 casi idénticas entre documentos. Quedaron 3,020 pasajes de economía, 783 de gobierno y seguridad, 483 de sociedad, 211 municipales y 143 de geografía y ambiente. El filtro de similitud es una heurística textual y no demuestra ausencia de paráfrasis o contenido equivalente. El PDF del manual de accesibilidad solo aportó tres pasajes.
+The 138 documents total 4,888 pages. Out of 6,446 candidate passages from 141 PDFs, **4,640** were
+kept; 474 exact matches (433 across documents, 41 within one) and 1,332 near-identical passages
+across documents were removed. Kept passages: 3,020 economy, 783 government and security, 483
+society, 211 municipal, 143 geography and environment. The similarity filter is a textual heuristic
+and does not rule out paraphrased or equivalent content.
 
-## Reproducir y usar
+## Reproduce
 
-Desde `llm-synthetic-data-develop/`:
+From the repository root:
 
 ```bash
 python3 collect_iieg.py
 python3 -m unittest -q test_collect_iieg.py
 ```
 
-Se requieren `curl`, `pdfinfo` y `pdftotext`; el recolector no instala paquetes de Python. Reutiliza los PDF descargados y consulta las páginas oficiales solo si falta su copia local. Para generar pares más adelante, configurar `data_path: ./corpora/iieg_diverso_2023_2025/md` y una **salida nueva** en la configuración de `synthetic.py`, junto con un modelo disponible localmente. No se han generado pares ni entrenado modelos: la DGX no está disponible.
+Requires `curl`, `pdfinfo` and `pdftotext`; no Python packages beyond the standard library. Already
+downloaded PDFs are reused; the official pages are queried only for missing copies.
 
-Antes de medir train/val, asociar cada `source_file` del CSV generado con `source_group` del manifiesto y separar por grupo; dividir solo por filas o por `source_file` puede repartir informes de la misma serie entre ambos conjuntos. Equilibrar las áreas al seleccionar pasajes para generación o entrenamiento, revisar manualmente una muestra de texto y de pares generados, y repetir la auditoría de similitud después de cualquier conversión o fragmentación distinta.
+## Splitting
+
+Publications of one series (monthly bulletins, regional sheets) share template sentences. Splits
+must keep a whole series in one partition — splitting by row or by file leaks near-copies from train
+into test. `Tesis-Embeddings/src/split_dataset.py --group-col source_file --series-threshold 0.5`
+does this.
