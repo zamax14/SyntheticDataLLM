@@ -2,7 +2,7 @@
 #SBATCH --job-name=restyle
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=8gb
-#SBATCH --output=/raid/home/alexzm/scripts/llm-synthetic-data-develop/slurm/logs/%j_restyle.out
+#SBATCH --output=slurm/logs/%j_restyle.out
 #SBATCH --nodelist=dgxa100jal
 #SBATCH --partition=dgx_large
 set -e
@@ -12,10 +12,8 @@ set -e
 
 pwd; hostname; date
 
-source /shared/apps/Python/Tensorflow/3.11.6/etc/profile.d/conda.sh
+source "${CONDA_SH:-/shared/apps/Python/Tensorflow/3.11.6/etc/profile.d/conda.sh}"
 conda activate datagen
-
-cd /raid/home/alexzm/scripts/llm-synthetic-data-develop
 
 echo "========================================"
 echo "  Restyle the E3 distractor tools"

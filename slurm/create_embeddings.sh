@@ -2,7 +2,7 @@
 #SBATCH --job-name=gen_qa
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=32gb
-#SBATCH --output=/raid/home/alexzm/scripts/llm-synthetic-data-develop/slurm/logs/%j_gen_qa.out
+#SBATCH --output=slurm/logs/%j_gen_qa.out
 #SBATCH --nodelist=dgxa100jal
 #SBATCH --partition=dgx_large
 set -e
@@ -12,10 +12,8 @@ set -e
 
 pwd; hostname; date
 
-source /shared/apps/Python/Tensorflow/3.11.6/etc/profile.d/conda.sh
+source "${CONDA_SH:-/shared/apps/Python/Tensorflow/3.11.6/etc/profile.d/conda.sh}"
 conda activate datagen
-
-cd /raid/home/alexzm/scripts/llm-synthetic-data-develop
 
 echo "========================================"
 echo "  Generate (query, answer, hard_negative) triplets"

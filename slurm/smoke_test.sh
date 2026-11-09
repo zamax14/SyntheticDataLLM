@@ -2,7 +2,7 @@
 #SBATCH --job-name=gen_smoke
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=16gb
-#SBATCH --output=/raid/home/alexzm/scripts/llm-synthetic-data-develop/slurm/logs/%j_gen_smoke.out
+#SBATCH --output=slurm/logs/%j_gen_smoke.out
 #SBATCH --nodelist=dgxa100jal
 #SBATCH --partition=dgx_large
 set -e
@@ -16,10 +16,8 @@ set -e
 
 pwd; hostname; date
 
-source /shared/apps/Python/Tensorflow/3.11.6/etc/profile.d/conda.sh
+source "${CONDA_SH:-/shared/apps/Python/Tensorflow/3.11.6/etc/profile.d/conda.sh}"
 conda activate datagen
-
-cd /raid/home/alexzm/scripts/llm-synthetic-data-develop
 
 CORPUS=corpora/iieg_diverso_2023_2025/md
 MODEL=$(awk '/^model_name:/{print $2}' configs/create_embeddings.yaml)
