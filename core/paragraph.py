@@ -1,7 +1,6 @@
 # ==============================================================================
 # Project Name: Synthetic Data Generator
 # Script Name: paragraph.py
-# Authors: Abraham Sánchez, Ulises Moya, Alejandro Zarate  
 # Description:
 #   This application helps to create synthetic Q&A data format for LLM training
 #   models.

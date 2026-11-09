@@ -1,7 +1,6 @@
 # ==============================================================================
 # Project Name: Synthetic Data Generator
 # Script Name: audit.py
-# Authors: Alejandro Zarate
 # Description:
 #   Data audit of the synthetic question sets: lexical anchoring, copied figures,
 #   diversity (near duplicates, question openings, length), document coverage,

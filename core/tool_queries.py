@@ -1,7 +1,6 @@
 # ==============================================================================
 # Project Name: Synthetic Data Generator
 # Script Name: tool_queries.py
-# Authors: Alejandro Zarate
 # Description:
 #   Tool-retrieval evaluation set (E3): Spanish requests whose best tool is one
 #   of the agent's MCP tools, plus distractor tools that compete in the index.

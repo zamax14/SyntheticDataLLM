@@ -1,7 +1,6 @@
 # ==============================================================================
 # Project Name: Synthetic Data Generator
 # Script Name: synthetic.py
-# Authors: Abraham Sánchez, Ulises Moya, Alejandro Zarate
 # Description:
 #   Generates (query, answer, hard_negative) triplets from Markdown documents
 #   for fine-tuning Spanish embedding models (RAG / tool-calling retrieval).

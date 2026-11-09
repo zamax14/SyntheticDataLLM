@@ -1,7 +1,6 @@
 # ==============================================================================
 # Project Name: Synthetic Data Generator
 # Script Name: paraphrase.py
-# Authors: Alejandro Zarate
 # Description:
 #   Lexical control: rewrite test questions so they no longer share the passage's
 #   wording. The quality gate requires lexical anchoring, so the generated test
