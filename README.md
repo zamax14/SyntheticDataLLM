@@ -118,7 +118,7 @@ Plain assert-based self-checks, no test framework needed:
 
 ```bash
 python core/quality_gate.py          # gate criteria
-python core/audit.py                 # audit metrics
+python -m core.audit                 # audit metrics
 python -m unittest -q test_collect_iieg.py
 ```
 
