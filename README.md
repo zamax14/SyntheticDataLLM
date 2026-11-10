@@ -73,6 +73,7 @@ python synthetic.py <command> --config configs/<file>.yaml
 | `export_ragval` | Writes the evaluation schema of Tesis-RAG (`id, pregunta, chunk_id, chunk_content, documento`); also exports the tool set | `export_ragval.yaml`, `export_toolval*.yaml` |
 | `create_control_queries` | Generator-bias control: new queries for the same test passages written by a different LLM | `control_queries.yaml`, `control_tool_queries.yaml` |
 | `create_paraphrase_queries` | Lexical control: test (or training) questions rewritten without the passage's wording, kept only if a judge still finds them answerable | `paraphrase_queries.yaml`, `paraphrase_train.yaml` |
+| `create_agent_testset` | Test set of the agent evaluation: test questions with a kept paraphrase, stratified by document, in both wordings with a reference answer from the gold passage, plus test tool requests sampled per tool | `agent_testset.yaml` |
 | `create_tool_dataset` | Tool-retrieval set (E3): requests for each agent tool plus distractor tools; a round-trip judge flags doubtful rows for manual review | `create_tool_dataset.yaml`, `train_tool_queries.yaml`, `redo_tool_queries.yaml` |
 | `rejudge_tools` | Re-runs the round-trip judge over an existing tool dataset | `rejudge_train_tools.yaml` |
 | `restyle_distractors` | Rewrites distractor tools in the agent's docstring style so the index compares function, not wording | `restyle_distractors.yaml` |
