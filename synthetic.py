@@ -237,6 +237,63 @@ class SyntheticData:
         )
         _write_control(df[keep].assign(query=df.loc[keep, 'paraphrase']), output_path, ragval_csv)
 
+    def create_agent_testset(
+        self,
+        paraphrases_csv: str,
+        toolval_csv: str,
+        output_path: str,
+        n_documents: int = 120,
+        tools_per_tool: int = 5,
+        max_coverage: float = 0.5,
+        model_name: str = 'gpt-4o-mini',
+        base_url: str | None = None,
+        api_key: str | None = None,
+        disable_thinking: bool = False,
+        temperature: float = 0.0,
+        max_new_tokens: int = 1024,
+        seed: int = 42,
+        workers: int = 8
+    ) -> None:
+        """
+        Test set of the agent evaluation: n_documents test questions whose paraphrase
+        was kept, stratified by source document, each in its original and paraphrased
+        wording with one reference answer written from the gold passage; plus
+        tools_per_tool test requests per agent tool. Writes agente_documentos.csv
+        and agente_herramientas.csv.
+
+        Args:
+            paraphrases_csv (str): paraphrases.csv from create_paraphrase_queries (test).
+            toolval_csv (str): Tesis-RAG toolval_dataset.csv (E3 test requests).
+            output_path (str): Directory for the outputs.
+            n_documents (int): Document questions (each yields two rows).
+            tools_per_tool (int): Requests sampled per tool.
+            max_coverage (float): Paraphrase filter, as in create_paraphrase_queries.
+            model_name (str): Model id (OpenAI id, or the Ollama tag).
+            base_url (str): OpenAI-compatible endpoint.
+            api_key (str): API key for that endpoint.
+            disable_thinking (bool): Required for Ollama reasoning models.
+            temperature (float): Sampling temperature of the reference answers.
+            max_new_tokens (int): Output budget per call.
+            seed (int): Sampling seed for both samples and the LLM.
+            workers (int): Concurrent calls to the server.
+        """
+        from core import agent_testset as ats
+        from core.tool_queries import ToolLLM
+        docs = ats.sample_documents(read_csv(paraphrases_csv), n_documents, seed, max_coverage)
+        tools = ats.sample_tools(pd.read_csv(toolval_csv, dtype=str), tools_per_tool, seed)
+        Logger.info(f'🚀 Reference answers for {docs.par_id.nunique()} questions with {model_name} ...')
+        llm = ToolLLM(model_name, base_url, api_key, disable_thinking, temperature,
+                      max_new_tokens, seed)
+        docs = ats.add_references(llm, docs, workers)
+        os.makedirs(output_path, exist_ok=True)
+        docs.to_csv(os.path.join(output_path, 'agente_documentos.csv'), index=False)
+        tools.to_csv(os.path.join(output_path, 'agente_herramientas.csv'), index=False)
+        Logger.info(
+            f'🟢 {len(docs)} document rows ({docs.documento.nunique()} documents, '
+            f'{(docs.respuesta_ref == "").sum()} empty references); {len(tools)} tool requests '
+            f'for {tools.herramienta.nunique()} tools'
+        )
+
     def rejudge_tools(
         self,
         input_csv: str,
