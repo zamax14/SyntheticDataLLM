@@ -1,0 +1,20 @@
+# agent_testset_1: test set of the agent evaluation (task A-07 of the thesis roadmap).
+# Only test-partition material: 120 document questions with a kept paraphrase,
+# stratified by source document, each in both wordings; 5 E3 test requests per tool.
+# Reference answers come from the gold passage with the same generator as the
+# test questions (qwen3.8), at temperature 0.
+paraphrases_csv: ./control_output/lex_control_1/paraphrases.csv
+toolval_csv: ../Tesis-RAG/dataset/toolval_dataset.csv
+output_path: ./control_output/agent_testset_1
+n_documents: 120
+tools_per_tool: 5
+max_coverage: 0.5
+
+model_name: qwen3.8:latest
+base_url: http://localhost:11434/v1
+api_key: ollama
+disable_thinking: true
+temperature: 0.0
+max_new_tokens: 1024
+seed: 42
+workers: 8
