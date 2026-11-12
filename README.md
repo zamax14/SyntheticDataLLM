@@ -74,6 +74,7 @@ python synthetic.py <command> --config configs/<file>.yaml
 | `create_control_queries` | Generator-bias control: new queries for the same test passages written by a different LLM | `control_queries.yaml`, `control_tool_queries.yaml` |
 | `create_paraphrase_queries` | Lexical control: test (or training) questions rewritten without the passage's wording, kept only if a judge still finds them answerable | `paraphrase_queries.yaml`, `paraphrase_train.yaml` |
 | `create_agent_testset` | Test set of the agent evaluation: test questions with a kept paraphrase, stratified by document, in both wordings with a reference answer from the gold passage, plus test tool requests sampled per tool | `agent_testset.yaml` |
+| `create_multi_tool_queries` | Multi-tool requests of the agent evaluation: seeded pipelines of 2–4 tools, one request per set by a generator other than the training one, round trip by a third model | `multi_tool_queries.yaml`, `smoke_multi_tool_queries.yaml` |
 | `create_tool_dataset` | Tool-retrieval set (E3): requests for each agent tool plus distractor tools; a round-trip judge flags doubtful rows for manual review | `create_tool_dataset.yaml`, `train_tool_queries.yaml`, `redo_tool_queries.yaml` |
 | `rejudge_tools` | Re-runs the round-trip judge over an existing tool dataset | `rejudge_train_tools.yaml` |
 | `restyle_distractors` | Rewrites distractor tools in the agent's docstring style so the index compares function, not wording | `restyle_distractors.yaml` |
@@ -88,6 +89,30 @@ Each YAML file starts with a comment that explains which run it reproduces.
 anchored only in generic vocabulary (no figure or proper noun), and exact duplicates. The gate was
 introduced after a first evaluation set produced chance-level scores for every model; re-running it
 over that set rejects 100 % of it. The rejection rate is logged on every run.
+
+### Multi-tool requests
+
+`create_multi_tool_queries` builds requests that need several tools at once, e.g. *a chart of the
+ten municipalities with most IMSS-insured workers, put in a PDF report*.
+
+1. **Tool sets.** Each set is a pipeline of typed stages drawn from the E3 index: explore the
+   database → query (or an external indicator series) → statistics → chart, map or table →
+   deliver (PDF, Excel, slides, e-mail, write back). The stage pools and the templates are in the
+   config; distractor tools only enter where they are the natural tool. Every set has 2–4 tools,
+   at least one agent tool and its prerequisites (`summary_table` after `descriptive_stats`); the
+   sampler is seeded, cycles the sizes and always targets the agent tool used least so far, so every
+   agent tool is covered.
+2. **Request.** The generator gets the whole catalog (one line per tool), the full docstrings of
+   the set and an IIEG theme, and writes one request that needs those tools and no other, without
+   naming them.
+3. **Filters**, in order: empty or naming a tool; TF-IDF cosine ≥ `max_similarity` to a training,
+   validation or E3 test request; near-duplicate of an earlier request; round trip, where a third
+   model gets the request and the shuffled catalog and names the tools it needs. A request is kept
+   when the Jaccard of that set with the gold one reaches the strictest of `jaccard_thresholds`
+   that still keeps `min_kept` requests.
+
+`candidates.csv` keeps every set with the verifier's answer and the reason it was dropped;
+`agente_multiherramienta.csv` has the kept ones (`herramientas` and `chunk_ids` in pipeline order).
 
 ### Known pitfalls
 
@@ -108,6 +133,7 @@ over that set rejects 100 % of it. The rejection rate is logged on every run.
 | `core/hard_negative_miner.py` | Wrapper over `sentence_transformers.util.mine_hard_negatives` |
 | `core/paraphrase.py` | Paraphrase generation and answerability judge |
 | `core/tool_queries.py` | Tool requests, round-trip judge, distractor restyling |
+| `core/multi_tool.py` | Multi-tool sets, their requests and the round-trip filters |
 | `core/audit.py` | Read-only audit of a question set: lexical anchoring, copied figures, near duplicates, coverage per document, suspicious negatives |
 | `core/paragraph.py`, `core/pattern.py` | Split and clean Markdown into passages |
 | `utils/` | File I/O and logging |
@@ -119,6 +145,7 @@ Plain assert-based self-checks, no test framework needed:
 
 ```bash
 python core/quality_gate.py          # gate criteria
+python -m core.multi_tool            # multi-tool sampler and filters
 python -m core.audit                 # audit metrics
 python -m unittest -q test_collect_iieg.py
 ```
