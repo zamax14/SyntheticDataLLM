@@ -310,6 +310,7 @@ class SyntheticData:
         set_sizes: list[int] = [2, 3, 4],
         jaccard_thresholds: list[float] = [1.0, 0.75],
         min_kept: int = 100,
+        previous_csv: str | None = None,
         seed: int = 42,
         workers: int = 4
     ) -> None:
@@ -338,6 +339,10 @@ class SyntheticData:
             set_sizes (list): Set sizes, cycled.
             jaccard_thresholds (list): Candidate round-trip thresholds.
             min_kept (int): The strictest threshold that keeps this many is used.
+            previous_csv (str): candidates.csv of an earlier run with the same seed and
+                                stages: its requests and verdicts are reused for the
+                                sets it already has, so n_sets can grow without
+                                calling the LLMs again for them.
             seed (int): Seed of the sampler, the themes and the catalog shuffles.
             workers (int): Concurrent calls to the server.
         """
@@ -351,8 +356,15 @@ class SyntheticData:
         uncovered = real - {t for s in sets for t in s}
         assert not uncovered or n_sets < len(real), f'agent tools in no set: {sorted(uncovered)}'
 
-        Logger.info(f'🚀 {len(sets)} requests with {generator["model_name"]} ...')
-        df = mt.generate_requests(ToolLLM(**generator), tools, sets, themes, seed, workers)
+        prev = pd.read_csv(previous_csv, dtype={'pregunta': str, 'prediccion': str}) \
+            if previous_csv else pd.DataFrame(columns=['set_id', 'herramientas', 'tema', 'pregunta', 'prediccion'])
+        prev = prev[pd.Series([i < len(sets) and h == ';'.join(sets[i])
+                               for i, h in zip(prev['set_id'], prev['herramientas'])], index=prev.index, dtype=bool)]
+        todo = [i for i in range(len(sets)) if i not in set(prev['set_id'])]
+        Logger.info(f'🚀 {len(todo)} requests with {generator["model_name"]} ({len(prev)} reused) ...')
+        new = mt.generate_requests(ToolLLM(**generator), tools, sets, themes, seed, workers, only=todo)
+        df = pd.concat([prev[['set_id', 'herramientas', 'tema', 'pregunta']].fillna({'pregunta': ''}), new],
+                       ignore_index=True).sort_values('set_id').reset_index(drop=True)
         os.makedirs(output_path, exist_ok=True)
         df.to_csv(os.path.join(output_path, 'generated.csv'), index=False)
         gold = df['herramientas'].str.split(';')
@@ -373,10 +385,16 @@ class SyntheticData:
         df.loc[dup & (df['descarte'] == ''), 'descarte'] = 'duplicada'
 
         live = df['descarte'] == ''
-        Logger.info(f'🚀 Round trip of {live.sum()} requests with {verifier["model_name"]} ...')
-        predicted = mt.verify(ToolLLM(**verifier), tools, df.loc[live, 'pregunta'].tolist(), seed, workers)
-        df.loc[live, 'prediccion'] = [';'.join(p) for p in predicted]
-        df.loc[live, 'jaccard'] = [mt.jaccard(g, p) for g, p in zip(gold[live], predicted)]
+        known = {(i, q): p for i, q, p in zip(prev['set_id'], prev['pregunta'], prev['prediccion']) if isinstance(p, str)}
+        df['prediccion'] = [known.get((i, q)) for i, q in zip(df['set_id'], df['pregunta'])]
+        ask = live & df['prediccion'].isna()
+        Logger.info(f'🚀 Round trip of {ask.sum()} requests with {verifier["model_name"]} '
+                    f'({(live & ~ask).sum()} reused) ...')
+        predicted = mt.verify(ToolLLM(**verifier), tools, df.loc[ask, 'pregunta'].tolist(), seed, workers)
+        df.loc[ask, 'prediccion'] = [';'.join(p) for p in predicted]
+        df.loc[~live, 'prediccion'] = None
+        df.loc[live, 'jaccard'] = [mt.jaccard(g, p.split(';') if p else [])
+                                   for g, p in zip(gold[live], df.loc[live, 'prediccion'])]
         threshold = mt.pick_threshold(df.loc[live, 'jaccard'], jaccard_thresholds, min_kept)
         df.loc[live & (df['jaccard'] < threshold), 'descarte'] = 'ida_y_vuelta'
 
