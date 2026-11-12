@@ -1,0 +1,7 @@
+# Smoke test of multi_tool_queries.yaml: 6 sets end to end (~5 min).
+#   sbatch slurm/create_multi_tool_queries.sh --config configs/smoke_multi_tool_queries.yaml
+# Coverage of every agent tool cannot hold with 6 sets, so it is only checked
+# when n_sets >= the number of agent tools.
+n_sets: 6
+min_kept: 1
+output_path: ./control_output/smoke_multi_tool
