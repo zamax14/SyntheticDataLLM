@@ -10,13 +10,14 @@
 # ==============================================================================
 
 import random
+import re
 
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
 
 import pandas as pd
 
-from core.tool_queries import catalog, mentions_tool
+from core.tool_queries import catalog
 
 CONTEXT = ('Los datos del IIEG están en una base de datos PostgreSQL a la que el agente ya '
            'está conectado.')
@@ -114,8 +115,9 @@ def sample_sets(stages: dict[str, list[str]], templates: list, requires: dict[st
 
 
 def generate_requests(llm, tools: pd.DataFrame, sets: list[list[str]], themes: list[str],
-                      seed: int, workers: int) -> pd.DataFrame:
-    """One request per set; the theme cycles over `themes` in a seeded order."""
+                      seed: int, workers: int, only: list[int] | None = None) -> pd.DataFrame:
+    """One request per set (or per set index in `only`); the theme cycles over
+    `themes` in a seeded order."""
     listing = catalog(tools.sort_values('name'))
     described = dict(zip(tools['name'], tools['description']))
     order = random.Random(seed).sample(range(len(sets)), len(sets))
@@ -131,11 +133,15 @@ def generate_requests(llm, tools: pd.DataFrame, sets: list[list[str]], themes: l
                 'pregunta': text.strip() if isinstance(text, str) else ''}
 
     with ThreadPoolExecutor(max_workers=workers) as pool:
-        return pd.DataFrame(list(pool.map(one, range(len(sets)))))
+        return pd.DataFrame(list(pool.map(one, range(len(sets)) if only is None else only)),
+                            columns=['set_id', 'herramientas', 'tema', 'pregunta'])
 
 
 def names_a_tool(request: str, tool_set: list[str]) -> bool:
-    return any(mentions_tool(request, t) for t in tool_set)
+    """Whole-word version of mentions_tool: 'histograma' does not name `histogram`."""
+    q = request.casefold()
+    return any(re.search(rf'\b({re.escape(t.casefold())}|{re.escape(t.replace("_", " ").casefold())})\b', q)
+               for t in tool_set)
 
 
 def near_copies(queries: list[str], reference: list[str], threshold: float) -> tuple[list, list]:
@@ -198,6 +204,7 @@ if __name__ == '__main__':
     assert len({tuple(s) for s in sets}) == 12 and all(valid(s, real, requires) for s in sets)
     assert real <= {t for s in sets for t in s}
     assert names_a_tool('haz un bar chart', ['q', 'bar_chart']) and not names_a_tool('una gráfica', ['bar_chart'])
+    assert names_a_tool('usa histogram aqui', ['histogram']) and not names_a_tool('un histograma', ['histogram'])
     to_ref, dup = near_copies(['grafica del empleo en Zapopan', 'grafica del empleo en Zapopan',
                                'mapa de escuelas por municipio'],
                               ['grafica del empleo en Zapopan por mes'], 0.8)
