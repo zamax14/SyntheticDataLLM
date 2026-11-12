@@ -111,6 +111,9 @@ ten municipalities with most IMSS-insured workers, put in a PDF report*.
    when the Jaccard of that set with the gold one reaches the strictest of `jaccard_thresholds`
    that still keeps `min_kept` requests.
 
+With `previous_csv` (an earlier `candidates.csv`, same seed and stages) the requests and verdicts
+of the sets it already has are reused, so `n_sets` can grow without paying for them again.
+
 `candidates.csv` keeps every set with the verifier's answer and the reason it was dropped;
 `agente_multiherramienta.csv` has the kept ones (`herramientas` and `chunk_ids` in pipeline order).
 
