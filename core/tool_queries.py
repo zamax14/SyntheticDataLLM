@@ -115,7 +115,8 @@ class ToolLLM:
 
 
 def parse_json(text: str) -> dict:
-    """First JSON object in the text; {} when there is none."""
+    """First JSON object in the text, after any <think> block; {} when there is none."""
+    text = re.sub(r'<think>.*?</think>', '', text, flags=re.S)
     match = re.search(r'\{.*\}', text, re.S)
     if not match:
         return {}
@@ -278,6 +279,7 @@ def index_rows(tools: pd.DataFrame) -> pd.DataFrame:
 if __name__ == '__main__':
     assert parse_json('bla {"peticiones": ["a"]} bla') == {'peticiones': ['a']}
     assert parse_json('sin json') == {} and parse_json('{roto') == {}
+    assert parse_json('<think>uso {x}</think> {"a": 1}') == {'a': 1}
     assert mentions_tool('Usa bar_chart para esto', 'bar_chart')
     assert mentions_tool('haz un bar chart', 'bar_chart')
     assert not mentions_tool('haz una gráfica de barras', 'bar_chart')
