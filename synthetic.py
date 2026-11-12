@@ -353,6 +353,8 @@ class SyntheticData:
 
         Logger.info(f'🚀 {len(sets)} requests with {generator["model_name"]} ...')
         df = mt.generate_requests(ToolLLM(**generator), tools, sets, themes, seed, workers)
+        os.makedirs(output_path, exist_ok=True)
+        df.to_csv(os.path.join(output_path, 'generated.csv'), index=False)
         gold = df['herramientas'].str.split(';')
         df['descarte'] = ''
         bad = (df['pregunta'] == '') | pd.Series(
@@ -378,7 +380,6 @@ class SyntheticData:
         threshold = mt.pick_threshold(df.loc[live, 'jaccard'], jaccard_thresholds, min_kept)
         df.loc[live & (df['jaccard'] < threshold), 'descarte'] = 'ida_y_vuelta'
 
-        os.makedirs(output_path, exist_ok=True)
         df.to_csv(os.path.join(output_path, 'candidates.csv'), index=False)
         kept = df[df['descarte'] == ''].reset_index(drop=True)
         chunk_of = dict(zip(tools['name'], tools['chunk_id']))
