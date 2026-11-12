@@ -294,6 +294,114 @@ class SyntheticData:
             f'for {tools.herramienta.nunique()} tools'
         )
 
+    def create_multi_tool_queries(
+        self,
+        toolval_csv: str,
+        output_path: str,
+        stages: dict[str, list[str]],
+        templates: list[list[list[str | int]]],
+        themes: list[str],
+        generator: dict,
+        verifier: dict,
+        requires: dict[str, list[str]] | None = None,
+        reference_csvs: list[str] | None = None,
+        max_similarity: float = 0.8,
+        n_sets: int = 150,
+        set_sizes: list[int] = [2, 3, 4],
+        jaccard_thresholds: list[float] = [1.0, 0.75],
+        min_kept: int = 100,
+        seed: int = 42,
+        workers: int = 4
+    ) -> None:
+        """
+        Multi-tool requests of the agent evaluation: seeded tool sets of 2-4 tools
+        drawn as typed pipeline stages over the E3 index (at least one agent tool
+        each, every agent tool covered), one request per set by the generator,
+        then four filters: requests that name a tool or came back empty, near-copies
+        of reference requests, near-duplicates among themselves, and a round trip
+        where the verifier recovers the set from the request and the shuffled
+        catalog. Writes candidates.csv (every set, with the reason it was dropped)
+        and agente_multiherramienta.csv (the kept requests).
+
+        Args:
+            toolval_csv (str): Tesis-RAG toolval_dataset.csv (the tool index).
+            output_path (str): Directory for the outputs.
+            stages (dict): Stage name -> pool of tool names.
+            templates (list): Pipelines of [stage, min, max] entries.
+            themes (list): IIEG themes, cycled over the sets.
+            generator (dict): ToolLLM arguments of the request writer.
+            verifier (dict): ToolLLM arguments of the round-trip model.
+            requires (dict): Tool -> tools that must come earlier in its set.
+            reference_csvs (list): CSVs whose `query` or `pregunta` column holds requests to stay away from.
+            max_similarity (float): TF-IDF cosine at which a request counts as a copy.
+            n_sets (int): Candidate sets.
+            set_sizes (list): Set sizes, cycled.
+            jaccard_thresholds (list): Candidate round-trip thresholds.
+            min_kept (int): The strictest threshold that keeps this many is used.
+            seed (int): Seed of the sampler, the themes and the catalog shuffles.
+            workers (int): Concurrent calls to the server.
+        """
+        from core import multi_tool as mt
+        from core.tool_queries import ToolLLM
+        tools = mt.tool_catalog(pd.read_csv(toolval_csv, dtype=str))
+        unknown = {t for pool in stages.values() for t in pool} - set(tools['name'])
+        assert not unknown, f'tools not in the index: {sorted(unknown)}'
+        real = set(tools.loc[tools.real, 'name'])
+        sets = mt.sample_sets(stages, templates, requires or {}, real, n_sets, set_sizes, seed)
+        uncovered = real - {t for s in sets for t in s}
+        assert not uncovered or n_sets < len(real), f'agent tools in no set: {sorted(uncovered)}'
+
+        Logger.info(f'🚀 {len(sets)} requests with {generator["model_name"]} ...')
+        df = mt.generate_requests(ToolLLM(**generator), tools, sets, themes, seed, workers)
+        gold = df['herramientas'].str.split(';')
+        df['descarte'] = ''
+        bad = (df['pregunta'] == '') | pd.Series(
+            [mt.names_a_tool(q, g) for q, g in zip(df['pregunta'], gold)], index=df.index)
+        df.loc[bad, 'descarte'] = 'vacia_o_nombra'
+
+        reference = []
+        for path in reference_csvs or []:
+            ref = pd.read_csv(path, dtype=str)
+            reference += ref['query' if 'query' in ref else 'pregunta'].dropna().tolist()
+        live = df['descarte'] == ''
+        to_ref, dup = mt.near_copies(df.loc[live, 'pregunta'].tolist(), reference, max_similarity)
+        df.loc[live, 'sim_referencia'] = to_ref
+        df.loc[live & (df['sim_referencia'] >= max_similarity), 'descarte'] = 'copia_referencia'
+        dup = pd.Series(dup, index=df.index[live]).reindex(df.index, fill_value=False)
+        df.loc[dup & (df['descarte'] == ''), 'descarte'] = 'duplicada'
+
+        live = df['descarte'] == ''
+        Logger.info(f'🚀 Round trip of {live.sum()} requests with {verifier["model_name"]} ...')
+        predicted = mt.verify(ToolLLM(**verifier), tools, df.loc[live, 'pregunta'].tolist(), seed, workers)
+        df.loc[live, 'prediccion'] = [';'.join(p) for p in predicted]
+        df.loc[live, 'jaccard'] = [mt.jaccard(g, p) for g, p in zip(gold[live], predicted)]
+        threshold = mt.pick_threshold(df.loc[live, 'jaccard'], jaccard_thresholds, min_kept)
+        df.loc[live & (df['jaccard'] < threshold), 'descarte'] = 'ida_y_vuelta'
+
+        os.makedirs(output_path, exist_ok=True)
+        df.to_csv(os.path.join(output_path, 'candidates.csv'), index=False)
+        kept = df[df['descarte'] == ''].reset_index(drop=True)
+        chunk_of = dict(zip(tools['name'], tools['chunk_id']))
+        out = pd.DataFrame({
+            'id': [f'm{i + 1:03d}' for i in range(len(kept))],
+            'pregunta': kept['pregunta'],
+            'herramientas': kept['herramientas'],
+            'chunk_ids': kept['herramientas'].map(lambda s: ';'.join(chunk_of[t] for t in s.split(';'))),
+            'n_herramientas': kept['herramientas'].str.count(';') + 1,
+            'generador': generator['model_name'],
+            'verificador': verifier['model_name'],
+            'jaccard': kept['jaccard'].round(3),
+        })
+        out.to_csv(os.path.join(output_path, 'agente_multiherramienta.csv'), index=False)
+        covered = real & {t for s in out['herramientas'] for t in s.split(';')}
+        Logger.info(
+            f'🟢 {len(df)} sets -> {(df.descarte != "vacia_o_nombra").sum()} usable -> '
+            f'{(~df.descarte.isin(["vacia_o_nombra", "copia_referencia"])).sum()} novel -> '
+            f'{live.sum()} unique -> {len(out)} kept (Jaccard >= {threshold}; exact match '
+            f'{(df.jaccard == 1).sum()}); sizes {out.n_herramientas.value_counts().sort_index().to_dict()}; '
+            f'{len(covered)}/{len(real)} agent tools covered'
+        )
+
     def rejudge_tools(
         self,
         input_csv: str,
