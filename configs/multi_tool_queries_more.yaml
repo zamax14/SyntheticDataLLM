@@ -1,0 +1,8 @@
+# multi_tool_2: multi_tool_1 kept 77 of 150 sets (64 with an exact round trip), short
+# of 100. Grows the same seeded sampler to 300 sets, reusing the requests and verdicts
+# of multi_tool_1 for its 150 sets; only the new sets reach the LLMs. The requests that
+# the old substring check dropped ("histograma" naming `histogram`) are verified now.
+#   sbatch slurm/create_multi_tool_queries.sh --config configs/multi_tool_queries_more.yaml
+n_sets: 300
+previous_csv: ./control_output/multi_tool_1/candidates.csv
+output_path: ./control_output/multi_tool_2

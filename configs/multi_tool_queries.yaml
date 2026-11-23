@@ -1,0 +1,85 @@
+# multi_tool_1: multi-tool requests of the agent evaluation. Each request needs 2-4
+# tools of the E3 index (213 tools: the 24 agent tools plus the restyled distractors).
+#   sbatch slurm/create_multi_tool_queries.sh
+# The generator is not the training generator (qwen3.8) nor an agent LLM; the
+# verifier is a third model of another family. Ollama tags on the node do not
+# always match the weights, so the job logs the digest of both models.
+toolval_csv: ../Tesis-RAG/dataset/toolval_dataset.csv
+output_path: ./control_output/multi_tool_1
+
+# Requests closer than this (TF-IDF cosine) to any training/validation tool request
+# or to an E3 test request are dropped, and so are near-duplicates among themselves.
+reference_csvs:
+  - ../Tesis-Embeddings/datasets/tools/train.csv
+  - ../Tesis-Embeddings/datasets/tools/val.csv
+  - ../Tesis-RAG/dataset/toolval_dataset.csv
+max_similarity: 0.8
+
+# Tool sets: each template is a pipeline of typed stages [stage, min, max], each stage
+# draws that many tools of its pool. Distractors only appear where they are the
+# natural tool (an external indicator series, a forecast, a box plot, the output
+# file or the e-mail). The explore stage keeps its listed order.
+n_sets: 150
+set_sizes: [2, 3, 4]        # cycled, so the sizes come out balanced
+stages:
+  explore: [list_databases, connect_database, get_schemas, get_tables, get_table_info]
+  source: [execute_query]
+  indicator: [fetch_indicator_timeseries]      # an external series instead of the database
+  stats: [aggregate, descriptive_stats, frequency_distribution, correlation_matrix,
+          hypothesis_test, arima_forecast, outlier_detection]
+  present: [bar_chart, line_chart, pie_chart, scatter_chart, histogram, heatmap,
+            correlation_heatmap, choropleth_map, heat_map, point_map, to_markdown_table,
+            summary_table, box_plot]
+  deliver: [generate_pdf_report, export_to_excel, create_pptx_slide_deck, send_email,
+            execute_write]
+templates:
+  - [[source, 1, 1], [stats, 1, 1], [present, 0, 1], [deliver, 0, 1]]   # analysis
+  - [[source, 1, 1], [present, 1, 2], [deliver, 0, 1]]                  # report
+  - [[source, 1, 1], [stats, 1, 2], [present, 0, 1]]                    # two analyses
+  - [[explore, 1, 3], [source, 0, 1]]                                   # explore the database
+  - [[indicator, 1, 1], [stats, 0, 1], [present, 0, 1], [deliver, 0, 1]]  # external indicator
+# A tool whose input is the output of another one.
+requires:
+  summary_table: [descriptive_stats]
+  correlation_heatmap: [correlation_matrix]
+
+themes:
+  - empleo formal y trabajadores asegurados en el IMSS
+  - salarios y masa salarial
+  - economía, PIB e inversión extranjera
+  - exportaciones e importaciones
+  - población, censos y proyecciones demográficas
+  - migración
+  - escuelas, matrícula y rezago educativo
+  - salud, unidades médicas y derechohabiencia
+  - pobreza y carencias sociales
+  - seguridad e incidencia delictiva
+  - precios e inflación
+  - turismo y ocupación hotelera
+  - vivienda
+  - geografía de Jalisco, regiones y localidades
+  - agricultura y ganadería
+
+# Round trip: kept if the verifier's set has a Jaccard with the gold set of at least
+# the strictest of these thresholds that still keeps min_kept requests.
+jaccard_thresholds: [1.0, 0.75]
+min_kept: 100
+
+generator:
+  model_name: gemma4:31b
+  base_url: http://localhost:11434/v1
+  api_key: ollama
+  disable_thinking: true
+  temperature: 0.7
+  max_new_tokens: 1024
+  seed: 42
+verifier:
+  model_name: deepseek-r1:70b
+  base_url: http://localhost:11434/v1
+  api_key: ollama
+  disable_thinking: false     # deepseek-r1 reasons anyway; the <think> block is stripped
+  temperature: 0.0
+  max_new_tokens: 8192
+  seed: 42
+seed: 42
+workers: 4
